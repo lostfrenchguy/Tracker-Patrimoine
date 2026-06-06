@@ -137,26 +137,86 @@ const KNOWN={
   ESEE:{name:'S&P 500 BNP Easy PEA',type:'etf',cur:'EUR',yahoo:'ESEE.PA',isin:'FR0011550185'},
   CW8:{name:'MSCI World Amundi CW8',type:'etf',cur:'EUR',yahoo:'CW8.PA'},
   IWDA:{name:'MSCI World iShares IWDA',type:'etf',cur:'EUR',yahoo:'IWDA.AS'},
+  CD9:{name:'MSCI EM Amundi',type:'etf',cur:'EUR',yahoo:'CE9.PA'},
+  PANX:{name:'Nasdaq 100 Amundi PEA',type:'etf',cur:'EUR',yahoo:'PUST.PA'},
   SPY:{name:'S&P 500 SPDR SPY',type:'etf',cur:'USD',yahoo:'SPY'},
   QQQ:{name:'Nasdaq 100 Invesco',type:'etf',cur:'USD',yahoo:'QQQ'},
+  VWCE:{name:'FTSE All-World Vanguard',type:'etf',cur:'EUR',yahoo:'VWCE.DE'},
   BTC:{name:'Bitcoin',type:'crypto',cur:'EUR',cg:'bitcoin'},
   ETH:{name:'Ethereum',type:'crypto',cur:'EUR',cg:'ethereum'},
   SOL:{name:'Solana',type:'crypto',cur:'EUR',cg:'solana'},
   BNB:{name:'BNB',type:'crypto',cur:'EUR',cg:'binancecoin'},
   XRP:{name:'Ripple',type:'crypto',cur:'EUR',cg:'ripple'},
   ADA:{name:'Cardano',type:'crypto',cur:'EUR',cg:'cardano'},
+  AVAX:{name:'Avalanche',type:'crypto',cur:'EUR',cg:'avalanche-2'},
+  DOT:{name:'Polkadot',type:'crypto',cur:'EUR',cg:'polkadot'},
+  LINK:{name:'Chainlink',type:'crypto',cur:'EUR',cg:'chainlink'},
   XAU:{name:'Or physique',type:'gold',cur:'EUR'},
   AAPL:{name:'Apple',type:'stock',cur:'USD',yahoo:'AAPL'},
   MSFT:{name:'Microsoft',type:'stock',cur:'USD',yahoo:'MSFT'},
   NVDA:{name:'Nvidia',type:'stock',cur:'USD',yahoo:'NVDA'},
   AMZN:{name:'Amazon',type:'stock',cur:'USD',yahoo:'AMZN'},
-  GOOGL:{name:'Alphabet',type:'stock',cur:'USD',yahoo:'GOOGL'},
-  META:{name:'Meta',type:'stock',cur:'USD',yahoo:'META'},
+  GOOGL:{name:'Alphabet (Google)',type:'stock',cur:'USD',yahoo:'GOOGL'},
+  META:{name:'Meta (Facebook)',type:'stock',cur:'USD',yahoo:'META'},
   TSLA:{name:'Tesla',type:'stock',cur:'USD',yahoo:'TSLA'},
+  AVGO:{name:'Broadcom',type:'stock',cur:'USD',yahoo:'AVGO'},
+  AMD:{name:'AMD',type:'stock',cur:'USD',yahoo:'AMD'},
+  TSM:{name:'TSMC',type:'stock',cur:'USD',yahoo:'TSM'},
+  PLTR:{name:'Palantir',type:'stock',cur:'USD',yahoo:'PLTR'},
+  CRWD:{name:'CrowdStrike',type:'stock',cur:'USD',yahoo:'CRWD'},
+  SNOW:{name:'Snowflake',type:'stock',cur:'USD',yahoo:'SNOW'},
+  NFLX:{name:'Netflix',type:'stock',cur:'USD',yahoo:'NFLX'},
+  ADBE:{name:'Adobe',type:'stock',cur:'USD',yahoo:'ADBE'},
+  CRM:{name:'Salesforce',type:'stock',cur:'USD',yahoo:'CRM'},
+  ORCL:{name:'Oracle',type:'stock',cur:'USD',yahoo:'ORCL'},
+  NOW:{name:'ServiceNow',type:'stock',cur:'USD',yahoo:'NOW'},
+  INTC:{name:'Intel',type:'stock',cur:'USD',yahoo:'INTC'},
+  QCOM:{name:'Qualcomm',type:'stock',cur:'USD',yahoo:'QCOM'},
+  MU:{name:'Micron',type:'stock',cur:'USD',yahoo:'MU'},
+  ARM:{name:'ARM Holdings',type:'stock',cur:'USD',yahoo:'ARM'},
+  COIN:{name:'Coinbase',type:'stock',cur:'USD',yahoo:'COIN'},
+  HOOD:{name:'Robinhood',type:'stock',cur:'USD',yahoo:'HOOD'},
+  SHOP:{name:'Shopify',type:'stock',cur:'USD',yahoo:'SHOP'},
+  UBER:{name:'Uber',type:'stock',cur:'USD',yahoo:'UBER'},
+  ABNB:{name:'Airbnb',type:'stock',cur:'USD',yahoo:'ABNB'},
+  DIS:{name:'Disney',type:'stock',cur:'USD',yahoo:'DIS'},
+  BRKB:{name:'Berkshire Hathaway',type:'stock',cur:'USD',yahoo:'BRK-B'},
+  JPM:{name:'JPMorgan Chase',type:'stock',cur:'USD',yahoo:'JPM'},
+  V:{name:'Visa',type:'stock',cur:'USD',yahoo:'V'},
+  MA:{name:'Mastercard',type:'stock',cur:'USD',yahoo:'MA'},
+  COST:{name:'Costco',type:'stock',cur:'USD',yahoo:'COST'},
+  LLY:{name:'Eli Lilly',type:'stock',cur:'USD',yahoo:'LLY'},
+  UNH:{name:'UnitedHealth',type:'stock',cur:'USD',yahoo:'UNH'},
+  JNJ:{name:'Johnson & Johnson',type:'stock',cur:'USD',yahoo:'JNJ'},
+  PG:{name:'Procter & Gamble',type:'stock',cur:'USD',yahoo:'PG'},
+  KO:{name:'Coca-Cola',type:'stock',cur:'USD',yahoo:'KO'},
+  MCD:{name:'McDonalds',type:'stock',cur:'USD',yahoo:'MCD'},
+  HON:{name:'Honeywell',type:'stock',cur:'USD',yahoo:'HON'},
+  CAT:{name:'Caterpillar',type:'stock',cur:'USD',yahoo:'CAT'},
+  BA:{name:'Boeing',type:'stock',cur:'USD',yahoo:'BA'},
+  RKLB:{name:'Rocket Lab',type:'stock',cur:'USD',yahoo:'RKLB'},
+  SPACEX:{name:'SpaceX (non coté - manuel)',type:'stock',cur:'USD',source:'manual'},
+  OPENAI:{name:'OpenAI (non coté - manuel)',type:'stock',cur:'USD',source:'manual'},
+  STRIPE:{name:'Stripe (non coté - manuel)',type:'stock',cur:'USD',source:'manual'},
   MC:{name:'LVMH',type:'stock',cur:'EUR',yahoo:'MC.PA'},
-  BNP:{name:'BNP Paribas',type:'stock',cur:'EUR',yahoo:'BNP.PA'},
+  RMS:{name:'Hermès',type:'stock',cur:'EUR',yahoo:'RMS.PA'},
+  OR:{name:'L Oréal',type:'stock',cur:'EUR',yahoo:'OR.PA'},
   AIR:{name:'Airbus',type:'stock',cur:'EUR',yahoo:'AIR.PA'},
-  TTE:{name:'TotalEnergies',type:'stock',cur:'EUR',yahoo:'TTE.PA'}
+  SU:{name:'Schneider Electric',type:'stock',cur:'EUR',yahoo:'SU.PA'},
+  TTE:{name:'TotalEnergies',type:'stock',cur:'EUR',yahoo:'TTE.PA'},
+  SAN:{name:'Sanofi',type:'stock',cur:'EUR',yahoo:'SAN.PA'},
+  BNP:{name:'BNP Paribas',type:'stock',cur:'EUR',yahoo:'BNP.PA'},
+  DG:{name:'Vinci',type:'stock',cur:'EUR',yahoo:'DG.PA'},
+  CAP:{name:'Capgemini',type:'stock',cur:'EUR',yahoo:'CAP.PA'},
+  ASML:{name:'ASML',type:'stock',cur:'EUR',yahoo:'ASML.AS'},
+  SAP:{name:'SAP',type:'stock',cur:'EUR',yahoo:'SAP.DE'},
+  SIE:{name:'Siemens',type:'stock',cur:'EUR',yahoo:'SIE.DE'},
+  NESN:{name:'Nestlé',type:'stock',cur:'CHF',yahoo:'NESN.SW'},
+  NOVN:{name:'Novartis',type:'stock',cur:'CHF',yahoo:'NOVN.SW'},
+  ROG:{name:'Roche',type:'stock',cur:'CHF',yahoo:'ROG.SW'},
+  NOVO:{name:'Novo Nordisk',type:'stock',cur:'USD',yahoo:'NVO'},
+  BABA:{name:'Alibaba',type:'stock',cur:'USD',yahoo:'BABA'},
+  TCEHY:{name:'Tencent',type:'stock',cur:'USD',yahoo:'TCEHY'}
 };
 const MARKET_ITEMS=[
   {section:'Indices mondiaux',items:[{label:'S&P 500',ticker:'^GSPC'},{label:'Nasdaq',ticker:'^IXIC'},{label:'CAC 40',ticker:'^FCHI'},{label:'DAX',ticker:'^GDAXI'},{label:'Eurostoxx',ticker:'^STOXX50E'},{label:'Nikkei',ticker:'^N225'}]},
@@ -168,6 +228,7 @@ const MARKET_ITEMS=[
 const STORE='tracker_patrimoine_v6';
 const OLD_STORES=['tracker_v5','tracker_v4','tracker_v3'];
 const ENVELOPES=['PEA','CTO','Crypto','Or physique','Assurance-vie','PEL','Cash EUR','Cash CHF','3e pilier','Autre'];
+const PLATFORMS=['Trade Republic','Coinbase','Binance','Kraken','Boursorama','Bourse Direct','Fortuneo','Trade Republic PEA','Degiro','Interactive Brokers','3e pilier réel','Assurance-vie','Banque','Coffre / physique','Ledger','MetaMask','Autre'];
 const STRATEGY_ENVELOPES=['PEA','CTO','Crypto'];
 const DCA_ENVELOPES=['PEA','CTO','Crypto'];
 const TYPES={etf:'ETF',stock:'Action',crypto:'Crypto',gold:'Or',cash:'Cash',assurance:'Assurance-vie',pel:'PEL',pillar:'3e pilier',other:'Autre'};
@@ -379,12 +440,12 @@ function showAccountForm(editId){const a=editId?(S.accounts||[]).find(x=>x.id===
 function editAccount(id){showAccountForm(id)}
 function saveAccount(id){const a={id:id||cid(),name:byId('an').value.trim(),type:byId('at').value,envelope:byId('ae').value,status:byId('as').value,cur:byId('ac').value,amount:num(byId('aa').value),institution:byId('ai').value.trim(),updatedAt:byId('au').value||today(),comment:byId('aco').value.trim()};if(!a.name){toast('Nom requis');return;}S.accounts=id?S.accounts.map(x=>x.id===id?a:x):[...S.accounts,a];save();toast('Compte enregistré');renderPortfolio();}
 function delAccount(id){if(!confirm('Supprimer ce compte ?'))return;S.accounts=S.accounts.filter(a=>a.id!==id);save();renderPortfolio();}
-function showAssetForm(){byId('asset-form').innerHTML=`<div class="card"><div class="card-title">Actif personnalisé</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="xn"></div><div class="fl"><label>Ticker</label><input id="xt" style="text-transform:uppercase"></div><div class="fl"><label>ISIN optionnel</label><input id="xi"></div><div class="fl"><label>Type</label><select id="xtype">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="xc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Source de prix</label><select id="xs"><option value="manual">manuel</option><option value="live">live</option></select></div><div class="fl"><label>Plateforme</label><input id="xp"></div><div class="fl wide"><label>Commentaire</label><textarea id="xco"></textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveAsset()">Enregistrer</button><button class="btn btn-g" onclick="byId('asset-form').innerHTML=''">Annuler</button></div></div>`}
+function showAssetForm(){byId('asset-form').innerHTML=`<div class="card"><div class="card-title">Actif personnalisé</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="xn"></div><div class="fl"><label>Ticker</label><input id="xt" style="text-transform:uppercase"></div><div class="fl"><label>ISIN optionnel</label><input id="xi"></div><div class="fl"><label>Type</label><select id="xtype">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="xc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Source de prix</label><select id="xs"><option value="manual">manuel</option><option value="live">live</option></select></div><div class="fl"><label>Plateforme</label><select id="xp">${PLATFORMS.map(pf=>`<option>${pf}</option>`).join('')}</select></div><div class="fl wide"><label>Commentaire</label><textarea id="xco"></textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveAsset()">Enregistrer</button><button class="btn btn-g" onclick="byId('asset-form').innerHTML=''">Annuler</button></div></div>`}
 function saveAsset(){const a={id:cid(),name:byId('xn').value.trim(),ticker:byId('xt').value.trim().toUpperCase(),isin:byId('xi').value.trim(),type:byId('xtype').value,cur:byId('xc').value,priceSource:byId('xs').value,platform:byId('xp').value.trim(),comment:byId('xco').value.trim()};if(!a.name||!a.ticker){toast('Nom et ticker requis');return;}S.customAssets=[...(S.customAssets||[]).filter(x=>x.ticker!==a.ticker),a];save();toast('Actif personnalisé ajouté');renderPortfolio();}
 function delAsset(id){if(!confirm('Supprimer cet actif personnalisé ?'))return;S.customAssets=S.customAssets.filter(a=>a.id!==id);save();renderPortfolio();}
 function renderEnvelopes(){const stats=envelopeStats(),T=totals();byId('content').innerHTML=`<div class="stack"><div class="g3"><div class="card kpi-card"><div class="kpi-lbl">Valeur totale</div><div class="kpi-val">${fE(T.val)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Montant investi</div><div class="kpi-val">${fE(T.inv)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Performance totale</div><div class="kpi-val ${T.perf>=0?'pos':'neg'}">${fE(T.perf)}</div></div></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Enveloppe</th><th>Valeur</th><th>Investi</th><th>Plus-value latente</th><th>Poids</th><th>Devise principale</th><th>Lignes</th></tr></thead><tbody>${stats.map(e=>`<tr><td class="l"><div class="asset-name">${esc(e.env)}</div></td><td>${fE(e.value)}</td><td>${fE(e.invested)}</td><td class="${e.pl>=0?'pos':'neg'}">${fE(e.pl)}<div class="sub-pct">${fP(e.plPct)}</div></td><td>${e.weight.toFixed(1)}%</td><td>${e.cur}</td><td>${e.count}</td></tr>`).join('')}</tbody></table></div></div></div>`}
 function renderTransactions(){const sorted=[...S.transactions].sort((a,b)=>(b.date||'').localeCompare(a.date||'')),rmap=realizedByTx();byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="fa"><button class="btn btn-p" onclick="showTxForm()">Ajouter transaction</button></div></div><div id="tx-form"></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Date</th><th class="l">Actif</th><th class="l">Op.</th><th>Qté</th><th>Prix</th><th>Frais</th><th>Réalisé</th><th class="l">Enveloppe</th><th></th></tr></thead><tbody>${sorted.map(t=>`<tr><td class="l muted">${esc(t.date)}</td><td class="l"><div class="asset-name">${esc(t.name)}</div><div class="asset-sub">${esc(t.sym)} · ${esc(t.platform)}</div></td><td class="l">${t.op==='buy'?'Achat':'Vente'}</td><td>${fN(t.qty)}</td><td>${fM(t.price,t.cur)}</td><td>${feeTotal(t)?fM(feeTotal(t),t.cur):'—'}</td><td class="${(rmap[t.id]??num(t.realizedPl))>=0?'pos':'neg'}">${t.op==='sell'?fE(rmap[t.id]??num(t.realizedPl)):'—'}</td><td class="l muted">${esc(inferEnvelope(t))}</td><td><button class="icon-btn" onclick="delTx('${t.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="9" class="empty">Aucune transaction.</td></tr>`}</tbody></table></div></div></div>`}
-function showTxForm(prefill={}){byId('tx-form').innerHTML=`<div class="card"><div class="card-title">Nouvelle transaction</div><div class="fgrid"><div class="fl wide"><label>Ticker</label><div class="autocomplete-wrap"><input id="fs" value="${prefill.sym||''}" oninput="acSearch(this.value)" autocomplete="off" style="text-transform:uppercase"><div class="autocomplete-list" id="ac-list" style="display:none"></div></div></div><div class="fl"><label>Nom</label><input id="fn" value="${esc(prefill.name||'')}"></div><div class="fl"><label>Type</label><select id="ft">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}" ${prefill.type===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Opération</label><select id="fo"><option value="buy">Achat</option><option value="sell">Vente</option></select></div><div class="fl"><label>Enveloppe</label><select id="fe">${ENVELOPES.map(e=>`<option ${prefill.envelope===e?'selected':''}>${e}</option>`).join('')}</select></div><div class="fl"><label>Plateforme</label><input id="fp" value="${esc(prefill.platform||'PEA')}"></div><div class="fl"><label>Devise</label><select id="fc">${['EUR','USD','CHF'].map(c=>`<option ${prefill.cur===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="fl"><label>Quantité</label><input id="fq" type="number" value="${prefill.qty||''}"></div><div class="fl"><label>Prix unitaire payé / vendu</label><input id="fpr" type="number" value="${prefill.price||''}"></div><div class="fl"><label>Frais ordre</label><input id="ff" type="number" value="${prefill.fees||0}"></div><div class="fl"><label>Frais change</label><input id="ffx" type="number" value="0"></div><div class="fl"><label>Spread / prime estimée</label><input id="fsp" type="number" value="0"></div><div class="fl"><label>Frais courtier / garde</label><input id="fbr" type="number" value="0"></div><div class="fl"><label>Date</label><input id="fd" type="date" value="${prefill.date||today()}"></div><div class="fl"><label>Poids or</label><input id="fgw" type="number"></div><div class="fl"><label>Type or</label><select id="fgk"><option></option><option>pièce</option><option>lingotin</option><option>once</option><option>autre</option></select></div><div class="fl"><label>Spot or</label><input id="fgs" type="number" value="${S.goldSpot||''}"></div><div class="fl wide"><label>Commentaire</label><textarea id="fco"></textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveTx()">Enregistrer</button><button class="btn btn-g" onclick="byId('tx-form').innerHTML=''">Annuler</button></div></div>`}
+function showTxForm(prefill={}){byId('tx-form').innerHTML=`<div class="card"><div class="card-title">Nouvelle transaction</div><div class="fgrid"><div class="fl wide"><label>Ticker</label><div class="autocomplete-wrap"><input id="fs" value="${prefill.sym||''}" oninput="acSearch(this.value)" autocomplete="off" style="text-transform:uppercase"><div class="autocomplete-list" id="ac-list" style="display:none"></div></div></div><div class="fl"><label>Nom</label><input id="fn" value="${esc(prefill.name||'')}"></div><div class="fl"><label>Type</label><select id="ft">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}" ${prefill.type===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Opération</label><select id="fo"><option value="buy">Achat</option><option value="sell">Vente</option></select></div><div class="fl"><label>Enveloppe</label><select id="fe">${ENVELOPES.map(e=>`<option ${prefill.envelope===e?'selected':''}>${e}</option>`).join('')}</select></div><div class="fl"><label>Plateforme</label><select id="fp">${PLATFORMS.map(pf=>`<option ${(prefill.platform||'Trade Republic')===pf?'selected':''}>${pf}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="fc">${['EUR','USD','CHF'].map(c=>`<option ${prefill.cur===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="fl"><label>Quantité</label><input id="fq" type="number" value="${prefill.qty||''}"></div><div class="fl"><label>Prix unitaire payé / vendu</label><input id="fpr" type="number" value="${prefill.price||''}"></div><div class="fl"><label>Frais ordre</label><input id="ff" type="number" value="${prefill.fees||0}"></div><div class="fl"><label>Frais change</label><input id="ffx" type="number" value="0"></div><div class="fl"><label>Spread / prime estimée</label><input id="fsp" type="number" value="0"></div><div class="fl"><label>Frais courtier / garde</label><input id="fbr" type="number" value="0"></div><div class="fl"><label>Date</label><input id="fd" type="date" value="${prefill.date||today()}"></div><div class="fl"><label>Poids or</label><input id="fgw" type="number"></div><div class="fl"><label>Type or</label><select id="fgk"><option></option><option>pièce</option><option>lingotin</option><option>once</option><option>autre</option></select></div><div class="fl"><label>Spot or</label><input id="fgs" type="number" value="${S.goldSpot||''}"></div><div class="fl wide"><label>Commentaire</label><textarea id="fco"></textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveTx()">Enregistrer</button><button class="btn btn-g" onclick="byId('tx-form').innerHTML=''">Annuler</button></div></div>`}
 function acSearch(val){const list=byId('ac-list');if(!list||!val){list.style.display='none';return;}const q=val.toUpperCase(),cat=assetCatalog();const matches=Object.entries(cat).filter(([k,v])=>k.includes(q)||String(v.name).toUpperCase().includes(q)).slice(0,9);if(!matches.length){list.innerHTML=`<div class="ac-item"><div><div class="ac-name">Actif personnalisé possible</div><div class="ac-type">Ajoute-le dans Portefeuille si tu veux le réutiliser</div></div></div>`;list.style.display='block';return;}list.innerHTML=matches.map(([k,v])=>`<div class="ac-item" onclick="acSelect('${k}')"><div><div class="ac-name">${k} — ${esc(v.name)}</div><div class="ac-type">${TYPES[v.type]||v.type} · ${v.cur}</div></div><span class="badge b-${v.type}">${TYPES[v.type]||v.type}</span></div>`).join('');list.style.display='block';}
 function acSelect(sym){const i=assetCatalog()[sym];byId('fs').value=sym;byId('fn').value=i.name;byId('ft').value=i.type;byId('fc').value=i.cur||'EUR';byId('fe').value=inferEnvelope({type:i.type,platform:i.platform});byId('fp').value=i.platform||byId('fp').value;byId('ac-list').style.display='none';}
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap')){const l=byId('ac-list');if(l)l.style.display='none';}});
@@ -406,7 +467,7 @@ function stooqCurrency(ticker){const t=String(ticker||'').toLowerCase();if(t.inc
 async function stooqPrice(ticker){const url=`https://stooq.com/q/l/?s=${encodeURIComponent(ticker)}&f=sd2t2ohlcv&h&e=csv`,text=await textFetch(url);if(!text)return null;const lines=text.trim().split('\n'),vals=(lines[1]||'').split(','),close=parseFloat(vals[6]);if(close)return{price:close,currency:stooqCurrency(ticker),source:'Stooq'};return null}
 const STOOQ_MAP={'WPEA.PA':'wpea.pa','ESEE.PA':'esee.pa','CW8.PA':'cw8.pa','IWDA.AS':'iwda.as','SPY':'spy.us','QQQ':'qqq.us','DIA':'dia.us','IWM':'iwm.us','^GSPC':'^spx','^IXIC':'^ndq','^DJI':'^dji','^RUT':'^rut','^FCHI':'^fxx','^GDAXI':'^dax','^STOXX50E':'^estoxx50','^FTSE':'^ukx','^SSMI':'^smi','^N225':'^nkx','^HSI':'^hsi','GC=F':'xauusd','SI=F':'xagusd','CL=F':'clusd','NG=F':'ngusd','EURUSD=X':'eurusd','EURCHF=X':'eurchf','USDCHF=X':'usdchf','BTC-EUR':'btc-eur.cc','ETH-EUR':'eth-eur.cc','SOL-EUR':'sol-eur.cc','BNB-EUR':'bnb-eur.cc','XRP-EUR':'xrp-eur.cc','AAPL':'aapl.us','MSFT':'msft.us','NVDA':'nvda.us','AMZN':'amzn.us','GOOGL':'googl.us','META':'meta.us','TSLA':'tsla.us','BRK-B':'brk-b.us','AVGO':'avgo.us','AMD':'amd.us','PLTR':'pltr.us','JPM':'jpm.us','V':'v.us','MC.PA':'mc.pa','BNP.PA':'bnp.pa','AIR.PA':'air.pa','TTE.PA':'tte.pa','OR.PA':'or.pa','RMS.PA':'rms.pa','SAN.PA':'san.pa','ASML.AS':'asml.as','SAP.DE':'sap.de','SIE.DE':'sie.de','NESN.SW':'nesn.ch'};
 async function getPrice(ticker){const mapped=STOOQ_MAP[ticker]||ticker.toLowerCase(),s=await stooqPrice(mapped);if(s)return s;if(STOOQ_MAP[ticker])return null;for(const u of [`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`]){const j=await gFetch(u),m=j?.chart?.result?.[0]?.meta;if(m?.regularMarketPrice)return{price:m.regularMarketPrice,currency:m.currency||'USD',source:'Yahoo',prev:m.chartPreviousClose||m.previousClose||null}}return null}
-async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fx=await gFetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CHF');if(fx?.rates){if(fx.rates.USD)S.fx.USD=1/fx.rates.USD;if(fx.rates.CHF)S.fx.CHF=1/fx.rates.CHF;S.fxUpdated=now}const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});if(Object.keys(ids).length){const j=await gFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`);Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';S.prices[sym.toLowerCase()]={price:fromE(j[id].eur,cur),cur,src:'live',at:now};n++}})}let goldNeeded=pos.some(p=>p.type==='gold')||(S.accounts||[]).some(a=>a.type==='gold');if(goldNeeded){let eur=null;const gd=await gFetch('https://gold-api.com/price/XAU');if(gd?.price)eur=gd.price*(S.fx.USD||.92);if(!eur){const g=await getPrice('GC=F');if(g?.price)eur=toE(g.price,g.currency||'USD')}if(eur){S.goldSpot=eur;S.goldUpdated=now;S.prices.xau={price:eur,cur:'EUR',src:'live',at:now};n++}}for(const p of pos.filter(p=>['etf','stock'].includes(p.type))){const info=cat[p.sym]||{},ticker=info.yahoo||p.sym;if(info.source==='manual')continue;const r=await getPrice(ticker);if(r?.price){const eur=toE(r.price,r.currency||p.cur);S.prices[p.sym.toLowerCase()]={price:fromE(eur,p.cur),cur:p.cur,src:'live',at:now};n++}}S.lastRefresh=now;createSnapshot(false);save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh : ${ago(now)} · auto 4h`;renderSpotBar();renderCurrent();toast(n?`${n} prix mis à jour + snapshot créé`:'Serveurs inaccessibles: prix manuels conservés');}
+async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fx=await gFetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CHF');if(fx?.rates){if(fx.rates.USD)S.fx.USD=1/fx.rates.USD;if(fx.rates.CHF)S.fx.CHF=1/fx.rates.CHF;S.fxUpdated=now}const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});if(Object.keys(ids).length){const j=await gFetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`);Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';S.prices[sym.toLowerCase()]={price:fromE(j[id].eur,cur),cur,src:'live',at:now};n++}})}let goldNeeded=pos.some(p=>p.type==='gold')||(S.accounts||[]).some(a=>a.type==='gold')||true;if(goldNeeded){let eur=null;try{const gj=await(await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=eur')).json();if(gj?.['pax-gold']?.eur)eur=gj['pax-gold'].eur;}catch(e){}if(eur){S.goldSpot=eur;S.goldUpdated=now;S.prices.xau={price:eur,cur:'EUR',src:'live',at:now};n++}}for(const p of pos.filter(p=>['etf','stock'].includes(p.type))){const info=cat[p.sym]||{},ticker=info.yahoo||p.sym;if(info.source==='manual')continue;const r=await getPrice(ticker);if(r?.price){const eur=toE(r.price,r.currency||p.cur);S.prices[p.sym.toLowerCase()]={price:fromE(eur,p.cur),cur:p.cur,src:'live',at:now};n++}}S.lastRefresh=now;createSnapshot(false);save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh : ${ago(now)} · auto 4h`;renderSpotBar();renderCurrent();toast(n?`${n} prix mis à jour + snapshot créé`:'Serveurs inaccessibles: prix manuels conservés');}
 setInterval(()=>{if(navigator.onLine)doRefresh()},4*60*60*1000);
 function qid(ticker){return 'mc-'+String(ticker).replace(/[^a-z0-9]/gi,'_')}
 function uniqueMarketItems(items){const seen=new Set();return items.filter(it=>{const k=it.ticker+'|'+(it.localSym||'');if(seen.has(k))return false;seen.add(k);return true;});}
@@ -430,10 +491,14 @@ function myMarketItems(){
     ...pos.filter(p=>p.type==='crypto'&&CG[p.sym]&&!['BTC','ETH'].includes(p.sym))
         .map(p=>({label:p.name,sym:p.sym,cgId:CG[p.sym],localSym:p.sym,kind:'crypto',cur:'EUR'}))
   ]);
+  const goldMacro=[
+    {label:'Or / once', sym:'XAU',cgId:'pax-gold',localSym:'XAU',kind:'crypto',cur:'EUR'}
+  ];
   return[
     {section:'ETF PEA',items:etf},
     ...(stocks.length?[{section:'Actions CTO',items:stocks}]:[]),
-    {section:'Crypto (live)',items:crypto}
+    {section:'Crypto (live)',items:crypto},
+    {section:'Or (live)',items:goldMacro}
   ];
 }
 async function renderMarket(force=false){
@@ -507,7 +572,7 @@ let marketHistoryCache={};
 async function runLimited(items,limit,fn){const queue=[...items];const workers=Array.from({length:Math.min(limit,queue.length)},async()=>{while(queue.length){await fn(queue.shift());}});await Promise.all(workers);}
 function updateMarketCard(card,d,it){card.querySelector('.mc-price').textContent=formatMarketPrice(d,it);const chg=d.prev?((d.price-d.prev)/d.prev)*100:null;card.querySelector('.mc-loading').className=chg==null?'mc-loading':'mc-chg '+(chg>=0?'pos':'neg');card.querySelector('.mc-loading').textContent=chg==null?'En direct':`${chg>=0?'▲ +':'▼ '}${chg.toFixed(2)} %`;card.querySelector('.mc-source').textContent=`${d.source||'live'} · ${ago(new Date(d.ts).toISOString())}`;card.querySelector('.badge').className='badge b-live';card.querySelector('.badge').textContent='live';}
 function renderDca(){const plan=monthlyPlanSummary(),mk=plan.mk,lines=plan.lines,execs=S.dca.executions||[],done=plan.done,planned=plan.planned,actual=plan.actual;byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="hint">Plan mensuel limité aux enveloppes alimentées: PEA, CTO et crypto. Assurance-vie, 3e pilier et PEL restent en suivi patrimonial.</div><button class="btn btn-p" onclick="showDcaForm()">Ajouter ligne</button></div><div id="dca-form"></div><div class="g3"><div class="card kpi-card"><div class="kpi-lbl">Prévu ce mois</div><div class="kpi-val">${fE(planned)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Déjà exécuté</div><div class="kpi-val pos">${fE(actual)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Reste à investir</div><div class="kpi-val">${fE(Math.max(0,planned-actual))}</div></div></div><div class="card"><div class="card-title">Plan du mois — ${mk}</div>${lines.map(l=>{const ex=done(l.id);return`<div class="dca-row"><button class="chk ${ex?'on':''}" onclick="executeDca('${l.id}')">${ex?'✓':''}</button><div><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · jour ${l.day||'—'}</div></div><span>${fE(l.plannedAmt)}</span><span>${ex?fE(ex.actual):'—'}</span><span class="${ex&&ex.actual-l.plannedAmt>=0?'pos':'neg'}">${ex?fE(ex.actual-l.plannedAmt):'—'}</span><span class="muted">${esc(l.platform)}</span><button class="icon-btn" onclick="delDcaLine('${l.id}')">×</button></div>`}).join('')||'<div class="empty">Aucune ligne mensuelle active.</div>'}</div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Mois</th><th class="l">Actif</th><th>Prévu</th><th>Brut réel</th><th>Frais</th><th>Qté</th><th>Écart</th><th class="l">Transaction</th></tr></thead><tbody>${execs.slice().reverse().map(e=>`<tr><td class="l">${e.month}</td><td class="l">${esc(e.name)}</td><td>${fE(e.planned)}</td><td>${fE(e.actual)}</td><td>${num(e.fees)+num(e.spreadFees)?fE(num(e.fees)+num(e.spreadFees)):'—'}</td><td>${e.qty?fN(e.qty):'—'}</td><td class="${e.actual-e.planned>=0?'pos':'neg'}">${fE(e.actual-e.planned)}</td><td class="l muted">${e.txId?'créée':'non créée'}</td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun historique mensuel.</td></tr>`}</tbody></table></div></div></div>`}
-function showDcaForm(){byId('dca-form').innerHTML=`<div class="card"><div class="card-title">Nouvelle ligne mensuelle</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="dn"></div><div class="fl"><label>Ticker</label><input id="ds" style="text-transform:uppercase"></div><div class="fl"><label>Type</label><select id="dt">${Object.entries(TYPES).filter(([k])=>['etf','stock','crypto'].includes(k)).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Montant prévu</label><input id="da" type="number"></div><div class="fl"><label>Fréquence</label><select id="df"><option>Mensuelle</option><option>Trimestrielle</option><option>Hebdomadaire</option></select></div><div class="fl"><label>Plateforme</label><input id="dp"></div><div class="fl"><label>Devise</label><select id="dc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Jour du mois</label><input id="dd" type="number" value="5"></div><div class="fl"><label>Enveloppe</label><select id="de">${DCA_ENVELOPES.map(e=>`<option>${e}</option>`).join('')}</select></div></div><div class="fa"><button class="btn btn-p" onclick="saveDcaLine()">Enregistrer</button><button class="btn btn-g" onclick="byId('dca-form').innerHTML=''">Annuler</button></div></div>`}
+function showDcaForm(){byId('dca-form').innerHTML=`<div class="card"><div class="card-title">Nouvelle ligne mensuelle</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="dn"></div><div class="fl"><label>Ticker</label><input id="ds" style="text-transform:uppercase"></div><div class="fl"><label>Type</label><select id="dt">${Object.entries(TYPES).filter(([k])=>['etf','stock','crypto'].includes(k)).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Montant prévu</label><input id="da" type="number"></div><div class="fl"><label>Fréquence</label><select id="df"><option>Mensuelle</option><option>Trimestrielle</option><option>Hebdomadaire</option></select></div><div class="fl"><label>Plateforme</label><select id="dp">${PLATFORMS.map(pf=>`<option>${pf}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="dc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Jour du mois</label><input id="dd" type="number" value="5"></div><div class="fl"><label>Enveloppe</label><select id="de">${DCA_ENVELOPES.map(e=>`<option>${e}</option>`).join('')}</select></div></div><div class="fa"><button class="btn btn-p" onclick="saveDcaLine()">Enregistrer</button><button class="btn btn-g" onclick="byId('dca-form').innerHTML=''">Annuler</button></div></div>`}
 function saveDcaLine(){const l={id:cid(),name:byId('dn').value.trim(),sym:byId('ds').value.trim().toUpperCase(),type:byId('dt').value,plannedAmt:num(byId('da').value),frequency:byId('df').value,platform:byId('dp').value.trim(),cur:byId('dc').value,day:num(byId('dd').value),envelope:byId('de').value,active:true};if(!l.name||!l.sym||l.plannedAmt<=0){toast('Nom, ticker et montant requis');return;}if(!DCA_ENVELOPES.includes(l.envelope)){toast('Cette enveloppe est hors plan mensuel');return;}S.dca.lines=[...(S.dca.lines||[]),l];save();renderDca();}
 function executeDca(id){
   const l=S.dca.lines.find(x=>x.id===id),mk=monthNow();if(!l)return;
@@ -539,8 +604,82 @@ function renderAllocation(){const items=strategyItems(),baseValue=sumItems(items
 function editTarget(id,k,v){const t=S.targetAllocation.find(x=>x.id===id);if(t){t[k]=k==='targetPct'?num(v):v;if(k==='matchValue')t[k]=String(v).trim();save();}}
 function addTarget(){S.targetAllocation=[...(S.targetAllocation||[]),{id:cid(),label:'Nouvelle cible',matchType:'type',matchValue:'etf',targetPct:0}];save();renderAllocation();}
 function delTarget(id){S.targetAllocation=S.targetAllocation.filter(t=>t.id!==id);save();renderAllocation();}
-function renderGoals(){const T=totals(),g=S.goals,rate=num(g.annualReturn),monthly=num(g.monthlyInvestment);function proj(y){const r=rate/100/12,n=y*12;return T.val*Math.pow(1+r,n)+(r?monthly*((Math.pow(1+r,n)-1)/r):monthly*n)}function need(target,y){const r=rate/100/12,n=y*12,want=num(target),future=T.val*Math.pow(1+r,n),gap=want-future;if(gap<=0)return 0;return r?gap*r/(Math.pow(1+r,n)-1):gap/n}byId('content').innerHTML=`<div class="stack"><div class="g4"><div class="card kpi-card"><div class="kpi-lbl">Capital actuel</div><div class="kpi-val">${fE(T.val)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Objectif patrimoine total</div><input type="number" value="${g.targetTotal}" onchange="S.goals.targetTotal=num(this.value);save();renderGoals()"><div class="progress"><span style="width:${clamp(T.val/num(g.targetTotal)*100,0,100)}%"></span></div></div><div class="card kpi-card"><div class="kpi-lbl">Réserve de sécurité</div><input type="number" value="${g.targetReserve}" onchange="S.goals.targetReserve=num(this.value);S.settings.securityReserveTarget=num(this.value);save();renderGoals()"></div><div class="card kpi-card"><div class="kpi-lbl">Investissement mensuel cible</div><input type="number" value="${monthly}" onchange="S.goals.monthlyInvestment=num(this.value);save();renderGoals()"></div></div><div class="g2"><div class="card"><div class="card-title">Paramètres</div><div class="fgrid"><div class="fl"><label>Rendement annuel moyen</label><input type="number" value="${rate}" onchange="S.goals.annualReturn=num(this.value);save();renderGoals()"></div></div><div class="note">Écart objectif total: ${fE(Math.max(0,num(g.targetTotal)-T.val))}. Progression ${num(g.targetTotal)?(T.val/num(g.targetTotal)*100).toFixed(1):0} %.</div></div><div class="card"><div class="card-title">Projection</div>${[1,5,10,20].map(y=>`<div class="move-row"><span>${y} an${y>1?'s':''}</span><b>${fE0(proj(y))}</b></div>`).join('')}</div></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th>Horizon</th><th>Capital cible</th><th>Projection</th><th>Montant restant</th><th>Mensuel nécessaire estimé</th></tr></thead><tbody>${[1,5,10,20].map(y=>{const target=num(g.horizonTargets?.[y]);return`<tr><td>${y} an${y>1?'s':''}</td><td><input class="mini-input" type="number" value="${target}" onchange="S.goals.horizonTargets['${y}']=num(this.value);save();renderGoals()"></td><td>${fE0(proj(y))}</td><td>${fE0(Math.max(0,target-T.val))}</td><td>${fE0(need(target,y))}</td></tr>`}).join('')}</tbody></table></div></div></div>`}
-function renderSettings(){const r=riskMetrics();byId('content').innerHTML=`<div class="stack" style="max-width:760px"><div class="card"><div class="card-title">Sauvegarde sérieuse</div><p class="hint">Les données restent dans le navigateur, mais le backup JSON permet de restaurer le cockpit ailleurs.</p><div class="fa" style="margin-top:14px"><button class="btn btn-p" onclick="exportBackup()">Télécharger backup</button><button class="btn btn-g" onclick="byId('backup-file').click()">Restaurer depuis backup</button><button class="btn btn-g" onclick="exportCSV()">Exporter CSV</button><button class="btn btn-g" onclick="createSnapshot(true);renderCurrent()">Créer snapshot maintenant</button><button class="btn btn-d" onclick="resetData()">Réinitialiser</button></div></div><div class="card"><div class="card-title">Sources de données</div><div class="sources-list"><div class="src-row"><span class="badge b-live">LIVE</span><b>Crypto</b><span class="muted">CoinGecko · sans clé · auto 4h</span></div><div class="src-row"><span class="badge b-live">LIVE</span><b>Or</b><span class="muted">gold-api.com puis Stooq/Yahoo</span></div><div class="src-row"><span class="badge b-live">LIVE</span><b>ETF & actions</b><span class="muted">Stooq puis Yahoo Finance</span></div><div class="src-row"><span class="badge b-live">LIVE</span><b>Change</b><span class="muted">Frankfurter / BCE</span></div><div class="src-row"><span class="badge b-manual">MANUEL</span><b>Actifs sans source</b><span class="muted">prix conservé et marqué manuel</span></div></div></div><div class="card"><div class="card-title">Risques et seuils</div><div class="fgrid"><div class="fl"><label>Seuil position max patrimoine (%)</label><input type="number" value="${S.settings.positionThreshold}" onchange="S.settings.positionThreshold=num(this.value);save();renderSettings()"></div><div class="fl"><label>Seuil crypto portefeuille piloté (%)</label><input type="number" value="${S.settings.cryptoThreshold}" onchange="S.settings.cryptoThreshold=num(this.value);save();renderSettings()"></div><div class="fl"><label>Cible réserve sécurité</label><input type="number" value="${S.settings.securityReserveTarget}" onchange="S.settings.securityReserveTarget=num(this.value);save();renderSettings()"></div></div><div class="note">Portefeuille piloté ${fE(r.strategyValue)} · Gelé / non alimenté ${fE(r.passiveValue)} · Crypto pilotée ${r.strategyPct(r.strategyTypes.crypto).toFixed(1)} % · USD économique ${r.pct(r.cur.USD).toFixed(1)} % · CHF ${r.pct(r.cur.CHF).toFixed(1)} % · Cash total ${r.pct(r.bt.cash).toFixed(1)} % · Top 3 patrimoine ${r.top3Pct.toFixed(1)} %.</div><div class="hint">L’USD économique utilise une approximation: WPEA/CW8/IWDA 65 % USD, ESEE/SPY/QQQ 100 % USD, actions US 100 % USD. Tu peux ajuster plus tard si besoin.</div>${r.alerts.map(a=>`<div class="alert-row">⚠ <span>${esc(a)}</span></div>`).join('')}</div><div class="card"><div class="card-title">Taux et or</div><div class="src-row">1 USD = ${S.fx.USD.toFixed(4)} € · 1 CHF = ${S.fx.CHF.toFixed(4)} € · Or: ${S.goldSpot?fE(S.goldSpot):'—'} / oz</div><div class="hint">Dernier change: ${ago(S.fxUpdated)} · dernier or: ${ago(S.goldUpdated)}</div></div></div>`}
+function renderGoals(){
+  const T=totals(),g=S.goals,rate=num(g.annualReturn),monthly=num(g.monthlyInvestment);
+  function proj(y){const r=rate/100/12,n=y*12;return T.val*Math.pow(1+r,n)+(r?monthly*((Math.pow(1+r,n)-1)/r):monthly*n)}
+  function need(target,y){const r=rate/100/12,n=y*12,want=num(target),future=T.val*Math.pow(1+r,n),gap=want-future;if(gap<=0)return 0;return r?gap*r/(Math.pow(1+r,n)-1):gap/n}
+  byId('content').innerHTML=`<div class="stack">
+    <div class="g4">
+      <div class="card kpi-card"><div class="kpi-lbl">Capital actuel</div><div class="kpi-val">${fE(T.val)}</div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Objectif patrimoine total</div><input type="number" value="${g.targetTotal}" onchange="S.goals.targetTotal=num(this.value);save();renderGoals()"><div class="progress"><span style="width:${clamp(T.val/num(g.targetTotal)*100,0,100)}%"></span></div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Réserve de sécurité</div><input type="number" value="${g.targetReserve}" onchange="S.goals.targetReserve=num(this.value);S.settings.securityReserveTarget=num(this.value);save();renderGoals()"></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Investissement mensuel cible</div><input type="number" value="${monthly}" onchange="S.goals.monthlyInvestment=num(this.value);save();renderGoals()"></div>
+    </div>
+    <div class="card">
+      <div class="toolbar"><div><div class="card-title" style="margin:0">Projection de croissance sur 20 ans</div><div class="hint">Capital actuel ${fE0(T.val)} + ${fE0(monthly)}/mois à ${rate} %/an. Ligne dorée = projection, pointillé = objectif.</div></div>
+      <div class="fl" style="max-width:160px"><label>Rendement annuel moyen (%)</label><input type="number" value="${rate}" onchange="S.goals.annualReturn=num(this.value);save();renderGoals()"></div></div>
+      <div class="chart-wrap"><canvas id="goals-chart"></canvas></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="card-title">Jalons</div>${[1,5,10,20].map(y=>`<div class="move-row"><span>${y} an${y>1?'s':''}</span><b>${fE0(proj(y))}</b></div>`).join('')}<div class="note">Écart objectif total: ${fE(Math.max(0,num(g.targetTotal)-T.val))} · Progression ${num(g.targetTotal)?(T.val/num(g.targetTotal)*100).toFixed(1):0} %.</div></div>
+      <div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Horizon</th><th>Capital cible</th><th>Projection</th><th>Restant</th><th>Mensuel requis</th></tr></thead><tbody>${[1,5,10,20].map(y=>{const target=num(g.horizonTargets?.[y]);return`<tr><td class="l">${y} an${y>1?'s':''}</td><td><input class="mini-input" type="number" value="${target}" onchange="S.goals.horizonTargets['${y}']=num(this.value);save();renderGoals()"></td><td>${fE0(proj(y))}</td><td>${fE0(Math.max(0,target-T.val))}</td><td>${fE0(need(target,y))}</td></tr>`}).join('')}</tbody></table></div></div>
+    </div>
+  </div>`;
+  // Graphique de projection
+  killCharts();
+  const el=byId('goals-chart');
+  if(el){
+    const years=[];for(let y=0;y<=20;y++)years.push(y);
+    const projData=years.map(y=>Math.round(proj(y)));
+    const targetTotal=num(g.targetTotal);
+    const targetLine=years.map(()=>targetTotal);
+    const investedData=years.map(y=>Math.round(T.val+monthly*12*y));
+    const dark=document.documentElement.getAttribute('data-theme')==='dark';
+    const grid=dark?'rgba(36,40,51,1)':'rgba(228,227,219,1)',muted=dark?'#8b93a4':'#71757e';
+    charts.push(new Chart(el.getContext('2d'),{
+      type:'line',
+      data:{labels:years.map(y=>y+' an'+(y>1?'s':'')),datasets:[
+        {label:'Projection',data:projData,borderColor:'#cdb78a',backgroundColor:'rgba(205,183,138,.14)',fill:true,tension:.25,pointRadius:0,borderWidth:2.5},
+        {label:'Capital investi (sans rendement)',data:investedData,borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.25,pointRadius:0,borderWidth:1.5},
+        {label:'Objectif',data:targetLine,borderColor:muted,borderDash:[6,5],fill:false,pointRadius:0,borderWidth:1.5}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:true,labels:{color:muted,boxWidth:12,font:{size:11}}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fE0(c.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:muted,maxTicksLimit:11}},y:{grid:{color:grid},ticks:{color:muted,callback:v=>fE0(v)}}}}
+    }));
+  }
+}
+
+function renderSettings(){
+  byId('content').innerHTML=`<div class="stack" style="max-width:680px">
+    <div class="card">
+      <div class="card-title">Sauvegarde</div>
+      <p class="hint">Tes données restent dans ce navigateur. Télécharge un backup pour ne rien perdre.</p>
+      <div class="fa" style="margin-top:14px">
+        <button class="btn btn-p" onclick="exportBackup()">Télécharger backup</button>
+        <button class="btn btn-g" onclick="byId('backup-file').click()">Restaurer backup</button>
+        <button class="btn btn-g" onclick="exportCSV()">Exporter CSV</button>
+        <button class="btn btn-d" onclick="resetData()">Réinitialiser</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Prix & sources</div>
+      <div class="sources-list">
+        <div class="src-row"><span class="badge b-live">AUTO</span><b>Crypto</b><span class="muted">CoinGecko, en direct</span></div>
+        <div class="src-row"><span class="badge b-live">AUTO</span><b>Or</b><span class="muted">CoinGecko (PAXG), en direct</span></div>
+        <div class="src-row"><span class="badge b-manual">MANUEL</span><b>ETF & actions</b><span class="muted">prix saisi à la main (onglet Marchés ou Portefeuille)</span></div>
+      </div>
+      <div class="note">Les prix d'ETF et d'actions européennes ne sont pas disponibles via une source gratuite fiable depuis un navigateur. Tu les mets à jour en cliquant dessus dans l'onglet Marchés.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Taux de change</div>
+      <div class="fgrid">
+        <div class="fl"><label>1 USD = ? €</label><input type="number" step="0.0001" value="${S.fx.USD}" onchange="S.fx.USD=num(this.value);S.fxUpdated=new Date().toISOString();save();renderSettings();renderSpotBar()"></div>
+        <div class="fl"><label>1 CHF = ? €</label><input type="number" step="0.0001" value="${S.fx.CHF}" onchange="S.fx.CHF=num(this.value);S.fxUpdated=new Date().toISOString();save();renderSettings();renderSpotBar()"></div>
+      </div>
+      <div class="note">Or actuel: ${S.goldSpot?fE(S.goldSpot):'—'} / oz · dernier change: ${ago(S.fxUpdated)}</div>
+    </div>
+  </div>`;
+}
+
 function exportBackup(){const payload={meta:{app:'Tracker Patrimoine',schemaVersion:6,exportedAt:new Date().toISOString()},data:S};download(`patrimoine_backup_${today()}.json`,JSON.stringify(payload,null,2),'application/json');toast('Backup téléchargé');}
 function validateBackup(raw){const data=raw?.data||raw;if(!data||typeof data!=='object')return null;if(!Array.isArray(data.transactions)&&!Array.isArray(data.accounts)&&!Array.isArray(data.snapshots))return null;return migrate(data);}
 function importBackupFile(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(reader.result),next=validateBackup(parsed);if(!next){toast('Backup invalide');return;}if(!confirm('Restaurer ce backup ? Les données actuelles seront remplacées.'))return;S=next;save();applyTheme();renderSpotBar();renderCurrent();toast('Backup restauré');}catch(e){toast('Fichier JSON invalide');}finally{byId('backup-file').value='';}};reader.readAsText(file);}
@@ -553,6 +692,19 @@ function updateOnline(){byId('odot').style.background=navigator.onLine?'var(--gr
 function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme||'dark');byId('theme-label').textContent=(S.theme||'dark')==='dark'?'Mode clair':'Mode sombre'}
 window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
 applyTheme();updateOnline();byId('refresh-meta').textContent=`Dernier refresh : ${ago(S.lastRefresh)} · auto 4h`;renderSpotBar();if(!(S.snapshots||[]).length){createSnapshot(false)}renderDashboard();
+// Chargement live initial (crypto + or) au démarrage, sans bloquer l'affichage
+(async function initLivePrices(){
+  try{
+    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,pax-gold&vs_currencies=eur');
+    const j=await r.json();
+    const now=new Date().toISOString();
+    if(j?.bitcoin?.eur)S.prices.btc={price:j.bitcoin.eur,cur:'EUR',src:'live',at:now};
+    if(j?.ethereum?.eur)S.prices.eth={price:j.ethereum.eur,cur:'EUR',src:'live',at:now};
+    if(j?.solana?.eur)S.prices.sol={price:j.solana.eur,cur:'EUR',src:'live',at:now};
+    if(j?.['pax-gold']?.eur){S.prices.xau={price:j['pax-gold'].eur,cur:'EUR',src:'live',at:now};S.goldSpot=j['pax-gold'].eur;S.goldUpdated=now;}
+    save();renderSpotBar();
+  }catch(e){}
+})();
 if(!liveNetworkAllowed())byId('refresh-meta').textContent='Mode fichier local · live web coupe';
 </script>
 </body>
