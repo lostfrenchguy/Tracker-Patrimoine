@@ -278,11 +278,11 @@ function DEF(){return{
   goals:{targetTotal:100000,targetReserve:9000,monthlyInvestment:1000,annualReturn:6,horizonTargets:{1:25000,5:75000,10:150000,20:500000}},
   snapshots:[],
   income:[],
-  settings:{positionThreshold:25,cryptoThreshold:10,securityReserveTarget:9000,baseCurrency:'EUR',allocationBase:'strategy',economicExposure:DEFAULT_EXPOSURE},
+  settings:{positionThreshold:25,alphaVantageKey:'5ISH3IP5OF0QD5FQ',cryptoThreshold:10,securityReserveTarget:9000,baseCurrency:'EUR',allocationBase:'strategy',economicExposure:DEFAULT_EXPOSURE},
   targetAllocation:[{id:cid(),label:'ETF Monde PEA',matchType:'symbol',matchValue:'WPEA',targetPct:65},{id:cid(),label:'S&P 500 PEA',matchType:'symbol',matchValue:'ESEE',targetPct:25},{id:cid(),label:'Actions CTO',matchType:'envelope',matchValue:'CTO',targetPct:5},{id:cid(),label:'Crypto',matchType:'type',matchValue:'crypto',targetPct:5}],
   theme:'dark'
 };}
-function inferEnvelope(x){if(x.envelope)return x.envelope;if(x.type==='crypto')return'Crypto';if(x.type==='gold')return'Or physique';if(['PEA','CTO'].includes(x.platform))return x.platform;if(['Coinbase','Binance'].includes(x.platform))return'Crypto';return'Autre';}
+function inferEnvelope(x){if(x.envelope)return x.envelope;if(x.type==='crypto')return'Crypto';if(x.type==='gold')return'Or physique';if(x.type==='stock')return'CTO';if(['PEA','CTO'].includes(x.platform))return x.platform;if(['Coinbase','Binance','Kraken'].includes(x.platform))return'Crypto';return'Autre';}
 function normTx(t){const info=KNOWN[String(t.sym||'').toUpperCase()]||{};return{id:t.id||cid(),date:t.date||today(),name:t.name||info.name||'',sym:String(t.sym||'').toUpperCase(),type:t.type||info.type||'other',envelope:inferEnvelope(t),platform:t.platform||'',cur:t.cur||info.cur||'EUR',op:t.op||'buy',qty:num(t.qty),price:num(t.price),fees:num(t.fees),buyFees:num(t.buyFees),sellFees:num(t.sellFees),fxFees:num(t.fxFees),spreadFees:num(t.spreadFees),brokerFees:num(t.brokerFees),custodyFees:num(t.custodyFees),ter:num(t.ter),goldWeight:num(t.goldWeight),goldUnit:t.goldUnit||'g',goldKind:t.goldKind||'',spotPrice:num(t.spotPrice),comment:t.comment||''};}
 function defaultAccountStatus(a){if(a.status)return a.status;if(['assurance','pillar','pel'].includes(a.type)||['Assurance-vie','3e pilier','PEL'].includes(a.envelope))return'frozen';if(a.type==='platform')return'active';return'watch';}
 function normAccount(a){return{id:a.id||cid(),name:a.name||'Compte',type:a.type||'other',envelope:a.envelope||'Autre',cur:a.cur||'EUR',amount:num(a.amount),institution:a.institution||a.platform||'',updatedAt:a.updatedAt||today(),status:defaultAccountStatus(a),comment:a.comment||''};}
@@ -390,7 +390,7 @@ function resetHistory(){
   S.snapshots=[];save();createSnapshot(false);renderDashboard();toast('Historique réinitialisé');
 }
 function perfPeriod(p){const snaps=[...(S.snapshots||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));if(snaps.length<2)return null;const start=periodStart(p);const subset=start?snaps.filter(s=>new Date(s.date)>=start):snaps;if(subset.length<2)return null;const a=subset[0],b=subset[subset.length-1];return{delta:b.total-a.total,pct:a.total>0?(b.total-a.total)/a.total*100:0};}
-let tab='dashboard',charts=[],activePeriod='tout',marketCache={};
+let tab='dashboard',charts=[],activePeriod='tout',marketCache={},pfSort={col:'val',dir:-1},pfSearch='',txFilter={op:'all',env:'all',q:''};
 const TAB_TITLES={dashboard:"Vue d'ensemble",portfolio:'Portefeuille',envelopes:'Enveloppes',transactions:'Transactions',income:'Revenus passifs',market:'Marchés',dca:'Plan mensuel',allocation:'Allocation cible',goals:'Objectifs',settings:'Réglages'};
 function killCharts(){charts.forEach(c=>{try{c.destroy()}catch(e){}});charts=[]}
 function renderCurrent(){killCharts();({dashboard:renderDashboard,portfolio:renderPortfolio,envelopes:renderEnvelopes,transactions:renderTransactions,income:renderIncome,market:renderMarket,dca:renderDca,allocation:renderAllocation,goals:renderGoals,settings:renderSettings})[tab]?.();}
@@ -489,12 +489,49 @@ function drawHistoryChart(){
 }
 function drawDonut(ae){const el=byId('donut-chart');if(!el||!ae.length)return;charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:ae.map(([k])=>TYPES[k]||k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ae.map(([k])=>COLORS[k]||'#888'),borderWidth:0}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fE(c.parsed)}`}}}}}));}
 function renderPortfolio(){
-  const pos=positions().sort((a,b)=>b.val-a.val),T=totals(pos);
-  byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="fa"><button class="btn btn-p" onclick="showAccountForm()">Ajouter compte / enveloppe</button><button class="btn btn-g" onclick="showAssetForm()">Ajouter actif personnalisé</button></div></div><div id="account-form"></div><div id="asset-form"></div>
-  <div class="section-title">Investissements risqués</div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Actif</th><th>Qté</th><th>PRU</th><th>Prix actuel</th><th>Investi</th><th>Valeur</th><th>+/- latent</th><th>Poids</th></tr></thead><tbody>${pos.length?pos.map(p=>`<tr><td class="l"><div class="asset-name">${esc(p.name)} <span class="badge b-${p.type}">${TYPES[p.type]||p.type}</span></div><div class="asset-sub">${esc(p.sym)} · ${esc(p.envelope)} · ${esc(p.platform)} · ${esc(p.cur)}</div></td><td>${fN(p.qty)}</td><td>${fM(p.avg,p.cur)}</td><td><div class="inline-edit" id="pc-${esc(p.key).replace(/[^a-z0-9]/gi,'_')}"><span>${fM(p.curP,p.cur)}</span><button class="icon-btn" onclick="editPrice('${esc(p.sym)}',${p.curP})">✎</button></div><div class="src-tag">${esc(p.src)}${p.srcAt?' · '+ago(p.srcAt):''}</div></td><td>${fE(p.inv)}</td><td>${fE(p.val)}</td><td class="${p.pl>=0?'pos':'neg'}">${fE(p.pl)}<div class="sub-pct">${fP(p.plPct)}</div></td><td>${(p.val/(T.val||1)*100).toFixed(1)}%</td></tr>`).join(''):`<tr><td colspan="8" class="empty">Aucune position.</td></tr>`}</tbody></table></div></div>
-  <div class="section-title">Patrimoine global hors marché</div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Compte / enveloppe</th><th class="l">Type</th><th class="l">Statut</th><th>Montant</th><th>Valeur EUR</th><th class="l">Institution</th><th class="l">Mise à jour</th><th></th></tr></thead><tbody>${(S.accounts||[]).map(a=>`<tr><td class="l"><div class="asset-name">${esc(a.name)}</div><div class="asset-sub">${esc(a.envelope)} · ${esc(a.comment)}</div></td><td class="l">${ACCOUNT_TYPES[a.type]||a.type}</td><td class="l"><span class="badge ${defaultAccountStatus(a)==='frozen'?'b-manual':defaultAccountStatus(a)==='active'?'b-live':'b-account'}">${ACCOUNT_STATUS[defaultAccountStatus(a)]}</span></td><td>${fM(a.amount,a.cur)}</td><td>${fE(accountValue(a))}</td><td class="l muted">${esc(a.institution)}</td><td class="l muted">${esc(a.updatedAt)}</td><td><button class="icon-btn" onclick="editAccount('${a.id}')">✎</button><button class="icon-btn" onclick="delAccount('${a.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun compte.</td></tr>`}</tbody></table></div></div>
-  <div class="section-title">Actifs personnalisés</div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Actif</th><th class="l">Type</th><th class="l">Devise</th><th class="l">Source</th><th class="l">Plateforme</th><th></th></tr></thead><tbody>${(S.customAssets||[]).map(a=>`<tr><td class="l"><div class="asset-name">${esc(a.name)}</div><div class="asset-sub">${esc(a.ticker)} ${a.isin?'· '+esc(a.isin):''}</div></td><td class="l">${TYPES[a.type]||a.type}</td><td class="l">${esc(a.cur)}</td><td class="l"><span class="badge ${a.priceSource==='live'?'b-live':'b-manual'}">${a.priceSource==='live'?'live':'manuel'}</span></td><td class="l muted">${esc(a.platform)}</td><td><button class="icon-btn" onclick="delAsset('${a.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="6" class="empty">Ajoute ici les actifs hors autocomplétion.</td></tr>`}</tbody></table></div></div></div>`;
+  let pos=positions();
+  const T=totals(pos);
+  // Recherche
+  if(pfSearch){const q=pfSearch.toLowerCase();pos=pos.filter(p=>String(p.name).toLowerCase().includes(q)||String(p.sym).toLowerCase().includes(q)||String(p.envelope).toLowerCase().includes(q));}
+  // Tri
+  const sc=pfSort.col,sd=pfSort.dir;
+  pos=[...pos].sort((a,b)=>{let va,vb;switch(sc){case'name':va=a.name;vb=b.name;return sd*String(va).localeCompare(String(vb));case'qty':va=a.qty;vb=b.qty;break;case'avg':va=a.avg;vb=b.avg;break;case'inv':va=a.inv;vb=b.inv;break;case'pl':va=a.pl;vb=b.pl;break;default:va=a.val;vb=b.val;}return sd*((va||0)-(vb||0));});
+  const arrow=col=>pfSort.col===col?(pfSort.dir<0?' ↓':' ↑'):'';
+  const th=(col,label,cls='')=>`<th class="${cls}" style="cursor:pointer;user-select:none" onclick="sortPf('${col}')">${label}${arrow(col)}</th>`;
+  // Fraîcheur prix : vert si <24h, ambre si <7j, gris sinon
+  const freshDot=p=>{if(!p.srcAt)return'#7d8694';const d=Date.now()-new Date(p.srcAt).getTime();if(d<864e5)return'#43d39a';if(d<6048e5)return'#e0a458';return'#7d8694';};
+  byId('content').innerHTML=`<div class="stack">
+    <div class="toolbar"><div class="fa">
+      <button class="btn btn-p" onclick="showAccountForm()">Ajouter compte / enveloppe</button>
+      <button class="btn btn-g" onclick="showAssetForm()">Ajouter actif personnalisé</button>
+    </div><div class="fa"><input type="text" placeholder="Rechercher un actif…" value="${esc(pfSearch)}" oninput="pfSearch=this.value;renderPortfolio()" style="min-width:200px"></div></div>
+    <div id="account-form"></div><div id="asset-form"></div>
+    <div class="section-title">Investissements (${pos.length})</div>
+    <div class="card flush"><div class="tbl-wrap"><table>
+      <thead><tr>${th('name','Actif','l')}${th('qty','Qté')}${th('avg','PRU')}<th>Prix actuel</th>${th('inv','Investi')}${th('val','Valeur')}${th('pl','+/- latent')}<th>Poids</th></tr></thead>
+      <tbody>${pos.length?pos.map(p=>`<tr>
+        <td class="l"><div class="asset-name">${esc(p.name)} <span class="badge b-${p.type}">${TYPES[p.type]||p.type}</span></div><div class="asset-sub">${esc(p.sym)} · ${esc(p.envelope)} · ${esc(p.platform)} · ${esc(p.cur)}</div></td>
+        <td>${fN(p.qty)}</td><td>${fM(p.avg,p.cur)}</td>
+        <td><div class="inline-edit"><span class="leg-dot" style="background:${freshDot(p)};display:inline-block;margin-right:6px;vertical-align:middle" title="${p.srcAt?'Maj '+ago(p.srcAt):'Jamais mis à jour'}"></span><span>${fM(p.curP,p.cur)}</span><button class="icon-btn" onclick="editPrice('${esc(p.sym)}',${p.curP})">✎</button></div><div class="src-tag">${esc(p.src)}${p.srcAt?' · '+ago(p.srcAt):''}</div></td>
+        <td>${fE(p.inv)}</td><td>${fE(p.val)}</td>
+        <td class="${p.pl>=0?'pos':'neg'}">${fE(p.pl)}<div class="sub-pct">${fP(p.plPct)}</div></td>
+        <td>${(p.val/(T.val||1)*100).toFixed(1)}%</td>
+      </tr>`).join(''):`<tr><td colspan="8" class="empty">${pfSearch?'Aucun résultat pour « '+esc(pfSearch)+' »':'Aucune position.'}</td></tr>`}</tbody>
+    </table></div></div>
+    <div class="section-title">Patrimoine global hors marché</div>
+    <div class="card flush"><div class="tbl-wrap"><table>
+      <thead><tr><th class="l">Compte / enveloppe</th><th class="l">Type</th><th class="l">Statut</th><th>Montant</th><th>Valeur EUR</th><th class="l">Institution</th><th class="l">Mise à jour</th><th></th></tr></thead>
+      <tbody>${(S.accounts||[]).map(a=>`<tr><td class="l"><div class="asset-name">${esc(a.name)}</div><div class="asset-sub">${esc(a.envelope)} · ${esc(a.comment)}</div></td><td class="l">${ACCOUNT_TYPES[a.type]||a.type}</td><td class="l"><span class="badge ${defaultAccountStatus(a)==='frozen'?'b-manual':defaultAccountStatus(a)==='active'?'b-live':'b-account'}">${ACCOUNT_STATUS[defaultAccountStatus(a)]}</span></td><td>${fM(a.amount,a.cur)}</td><td>${fE(accountValue(a))}</td><td class="l muted">${esc(a.institution)}</td><td class="l muted">${esc(a.updatedAt)}</td><td><button class="icon-btn" onclick="editAccount('${a.id}')">✎</button><button class="icon-btn" onclick="delAccount('${a.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun compte.</td></tr>`}</tbody>
+    </table></div></div>
+    <div class="section-title">Actifs personnalisés</div>
+    <div class="card flush"><div class="tbl-wrap"><table>
+      <thead><tr><th class="l">Actif</th><th class="l">Type</th><th class="l">Devise</th><th class="l">Source</th><th class="l">Plateforme</th><th></th></tr></thead>
+      <tbody>${(S.customAssets||[]).map(a=>`<tr><td class="l"><div class="asset-name">${esc(a.name)}</div><div class="asset-sub">${esc(a.ticker)} ${a.isin?'· '+esc(a.isin):''}</div></td><td class="l">${TYPES[a.type]||a.type}</td><td class="l">${esc(a.cur)}</td><td class="l"><span class="badge ${a.priceSource==='live'?'b-live':'b-manual'}">${a.priceSource==='live'?'live':'manuel'}</span></td><td class="l muted">${esc(a.platform)}</td><td><button class="icon-btn" onclick="delAsset('${a.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="6" class="empty">Ajoute ici les actifs hors autocomplétion.</td></tr>`}</tbody>
+    </table></div></div>
+  </div>`;
 }
+function sortPf(col){if(pfSort.col===col){pfSort.dir*=-1;}else{pfSort.col=col;pfSort.dir=col==='name'?1:-1;}renderPortfolio();}
+
 function editPrice(sym,current){const v=prompt('Prix manuel pour '+sym,current);if(v===null)return;const n=num(v);if(n>0){S.prices[sym.toLowerCase()]={price:n,cur:(assetCatalog()[sym.toUpperCase()]?.cur)||'EUR',src:'manuel',at:new Date().toISOString()};save();toast('Prix manuel enregistré');renderCurrent();renderSpotBar();}}
 function showAccountForm(editId){const a=editId?(S.accounts||[]).find(x=>x.id===editId):null;byId('account-form').innerHTML=`<div class="card"><div class="card-title">${a?'Modifier':'Nouveau'} compte / enveloppe</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="an" value="${esc(a?.name||'')}"></div><div class="fl"><label>Type</label><select id="at">${Object.entries(ACCOUNT_TYPES).map(([k,l])=>`<option value="${k}" ${a?.type===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Enveloppe</label><select id="ae">${ENVELOPES.map(e=>`<option ${a?.envelope===e?'selected':''}>${e}</option>`).join('')}</select></div><div class="fl"><label>Statut</label><select id="as">${Object.entries(ACCOUNT_STATUS).map(([k,l])=>`<option value="${k}" ${defaultAccountStatus(a||{})===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="ac">${['EUR','USD','CHF'].map(c=>`<option ${a?.cur===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="fl"><label>Montant</label><input id="aa" type="number" value="${a?.amount??''}"></div><div class="fl"><label>Institution</label><input id="ai" value="${esc(a?.institution||'')}"></div><div class="fl"><label>Date de mise à jour</label><input id="au" type="date" value="${a?.updatedAt||today()}"></div><div class="fl wide"><label>Commentaire</label><textarea id="aco">${esc(a?.comment||'')}</textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveAccount('${editId||''}')">Enregistrer</button><button class="btn btn-g" onclick="byId('account-form').innerHTML=''">Annuler</button></div></div>`;}
 function editAccount(id){showAccountForm(id)}
@@ -503,14 +540,114 @@ function delAccount(id){if(!confirm('Supprimer ce compte ?'))return;S.accounts=S
 function showAssetForm(){byId('asset-form').innerHTML=`<div class="card"><div class="card-title">Actif personnalisé</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="xn"></div><div class="fl"><label>Ticker</label><input id="xt" style="text-transform:uppercase"></div><div class="fl"><label>ISIN optionnel</label><input id="xi"></div><div class="fl"><label>Type</label><select id="xtype">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="xc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Source de prix</label><select id="xs"><option value="manual">manuel</option><option value="live">live</option></select></div><div class="fl"><label>Plateforme</label><select id="xp">${PLATFORMS.map(pf=>`<option>${pf}</option>`).join('')}</select></div><div class="fl wide"><label>Commentaire</label><textarea id="xco"></textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveAsset()">Enregistrer</button><button class="btn btn-g" onclick="byId('asset-form').innerHTML=''">Annuler</button></div></div>`}
 function saveAsset(){const a={id:cid(),name:byId('xn').value.trim(),ticker:byId('xt').value.trim().toUpperCase(),isin:byId('xi').value.trim(),type:byId('xtype').value,cur:byId('xc').value,priceSource:byId('xs').value,platform:byId('xp').value.trim(),comment:byId('xco').value.trim()};if(!a.name||!a.ticker){toast('Nom et ticker requis');return;}S.customAssets=[...(S.customAssets||[]).filter(x=>x.ticker!==a.ticker),a];save();toast('Actif personnalisé ajouté');renderPortfolio();}
 function delAsset(id){if(!confirm('Supprimer cet actif personnalisé ?'))return;S.customAssets=S.customAssets.filter(a=>a.id!==id);save();renderPortfolio();}
-function renderEnvelopes(){const stats=envelopeStats(),T=totals();byId('content').innerHTML=`<div class="stack"><div class="g3"><div class="card kpi-card"><div class="kpi-lbl">Valeur totale</div><div class="kpi-val">${fE(T.val)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Montant investi</div><div class="kpi-val">${fE(T.inv)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Performance totale</div><div class="kpi-val ${T.perf>=0?'pos':'neg'}">${fE(T.perf)}</div></div></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Enveloppe</th><th>Valeur</th><th>Investi</th><th>Plus-value latente</th><th>Poids</th><th>Devise principale</th><th>Lignes</th></tr></thead><tbody>${stats.map(e=>`<tr><td class="l"><div class="asset-name">${esc(e.env)}</div></td><td>${fE(e.value)}</td><td>${fE(e.invested)}</td><td class="${e.pl>=0?'pos':'neg'}">${fE(e.pl)}<div class="sub-pct">${fP(e.plPct)}</div></td><td>${e.weight.toFixed(1)}%</td><td>${e.cur}</td><td>${e.count}</td></tr>`).join('')}</tbody></table></div></div></div>`}
-function renderTransactions(){const sorted=[...S.transactions].sort((a,b)=>(b.date||'').localeCompare(a.date||'')),rmap=realizedByTx();byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="fa"><button class="btn btn-p" onclick="showTxForm()">Ajouter transaction</button></div></div><div id="tx-form"></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Date</th><th class="l">Actif</th><th class="l">Op.</th><th>Qté</th><th>Prix</th><th>Frais</th><th>Réalisé</th><th class="l">Enveloppe</th><th></th></tr></thead><tbody>${sorted.map(t=>`<tr><td class="l muted">${esc(t.date)}</td><td class="l"><div class="asset-name">${esc(t.name)}</div><div class="asset-sub">${esc(t.sym)} · ${esc(t.platform)}</div></td><td class="l">${t.op==='buy'?'Achat':'Vente'}</td><td>${fN(t.qty)}</td><td>${fM(t.price,t.cur)}</td><td>${feeTotal(t)?fM(feeTotal(t),t.cur):'—'}</td><td class="${(rmap[t.id]??num(t.realizedPl))>=0?'pos':'neg'}">${t.op==='sell'?fE(rmap[t.id]??num(t.realizedPl)):'—'}</td><td class="l muted">${esc(inferEnvelope(t))}</td><td><button class="icon-btn" onclick="delTx('${t.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="9" class="empty">Aucune transaction.</td></tr>`}</tbody></table></div></div></div>`}
-function showTxForm(prefill={}){byId('tx-form').innerHTML=`<div class="card"><div class="card-title">Nouvelle transaction</div><div class="fgrid"><div class="fl wide"><label>Ticker</label><div class="autocomplete-wrap"><input id="fs" value="${prefill.sym||''}" oninput="acSearch(this.value)" autocomplete="off" style="text-transform:uppercase"><div class="autocomplete-list" id="ac-list" style="display:none"></div></div></div><div class="fl"><label>Nom</label><input id="fn" value="${esc(prefill.name||'')}"></div><div class="fl"><label>Type</label><select id="ft">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}" ${prefill.type===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Opération</label><select id="fo"><option value="buy">Achat</option><option value="sell">Vente</option></select></div><div class="fl"><label>Enveloppe</label><select id="fe">${ENVELOPES.map(e=>`<option ${prefill.envelope===e?'selected':''}>${e}</option>`).join('')}</select></div><div class="fl"><label>Plateforme</label><select id="fp">${PLATFORMS.map(pf=>`<option ${(prefill.platform||'Trade Republic')===pf?'selected':''}>${pf}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="fc">${['EUR','USD','CHF'].map(c=>`<option ${prefill.cur===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="fl"><label>Quantité</label><input id="fq" type="number" value="${prefill.qty||''}"></div><div class="fl"><label>Prix unitaire payé / vendu</label><input id="fpr" type="number" value="${prefill.price||''}"></div><div class="fl"><label>Frais ordre</label><input id="ff" type="number" value="${prefill.fees||0}"></div><div class="fl"><label>Frais change</label><input id="ffx" type="number" value="0"></div><div class="fl"><label>Spread / prime estimée</label><input id="fsp" type="number" value="0"></div><div class="fl"><label>Frais courtier / garde</label><input id="fbr" type="number" value="0"></div><div class="fl"><label>Date</label><input id="fd" type="date" value="${prefill.date||today()}"></div><div class="fl"><label>Poids or</label><input id="fgw" type="number"></div><div class="fl"><label>Type or</label><select id="fgk"><option></option><option>pièce</option><option>lingotin</option><option>once</option><option>autre</option></select></div><div class="fl"><label>Spot or</label><input id="fgs" type="number" value="${S.goldSpot||''}"></div><div class="fl wide"><label>Commentaire</label><textarea id="fco"></textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveTx()">Enregistrer</button><button class="btn btn-g" onclick="byId('tx-form').innerHTML=''">Annuler</button></div></div>`}
+function renderEnvelopes(){
+  const stats=envelopeStats().filter(e=>e.value>0||e.count>0),T=totals();
+  const maxVal=Math.max(...stats.map(e=>e.value),1);
+  const ENV_COLORS={'PEA':'#9b8cff','CTO':'#e0a458','Crypto':'#4f9dde','Or physique':'#e8c56a','Assurance-vie':'#43d39a','PEL':'#cdb78a','Cash EUR':'#7d8694','Cash CHF':'#9ca3af','3e pilier':'#7dd3fc','Autre':'#a1a1aa'};
+  byId('content').innerHTML=`<div class="stack">
+    <div class="g3">
+      <div class="card kpi-card"><div class="kpi-lbl">Valeur totale</div><div class="kpi-val">${fE(T.val)}</div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Montant investi</div><div class="kpi-val">${fE(T.inv)}</div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Performance totale</div><div class="kpi-val ${T.perf>=0?'pos':'neg'}">${fE(T.perf)}</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="card-title">Répartition par enveloppe</div>
+        ${stats.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="env-donut"></canvas></div><div class="legend">${stats.map(e=>`<div class="leg-row"><div class="leg-dot" style="background:${ENV_COLORS[e.env]||'#888'}"></div><span>${esc(e.env)}</span><span class="muted">${e.weight.toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucune enveloppe alimentée.</p>'}
+      </div>
+      <div class="card"><div class="card-title">Poids de chaque enveloppe</div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:6px">
+        ${stats.map(e=>`<div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>${esc(e.env)}</span>
+            <span><b>${fE0(e.value)}</b> <span class="muted">· ${e.weight.toFixed(1)}%</span></span>
+          </div>
+          <div style="height:8px;background:var(--surface3);border-radius:5px;overflow:hidden">
+            <span style="display:block;height:100%;width:${(e.value/maxVal*100).toFixed(1)}%;background:${ENV_COLORS[e.env]||'#888'};border-radius:5px"></span>
+          </div>
+        </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card flush"><div class="tbl-wrap"><table>
+      <thead><tr><th class="l">Enveloppe</th><th>Valeur</th><th>Investi</th><th>Plus-value latente</th><th>Poids</th><th>Devise</th><th>Lignes</th></tr></thead>
+      <tbody>${stats.map(e=>`<tr>
+        <td class="l"><div class="asset-name"><span class="leg-dot" style="background:${ENV_COLORS[e.env]||'#888'};display:inline-block;margin-right:8px;vertical-align:middle"></span>${esc(e.env)}</div></td>
+        <td>${fE(e.value)}</td><td>${fE(e.invested)}</td>
+        <td class="${e.pl>=0?'pos':'neg'}">${fE(e.pl)}<div class="sub-pct">${fP(e.plPct)}</div></td>
+        <td>${e.weight.toFixed(1)}%</td><td>${e.cur}</td><td>${e.count}</td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>
+  </div>`;
+  killCharts();
+  const el=byId('env-donut');
+  if(el&&stats.length){
+    charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:stats.map(e=>e.env),datasets:[{data:stats.map(e=>e.value),backgroundColor:stats.map(e=>ENV_COLORS[e.env]||'#888'),borderWidth:0}]},options:{cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fE(ctx.parsed)}`}}}}}));
+  }
+}
+
+function renderTransactions(){
+  const rmap=realizedByTx();
+  let txs=[...S.transactions];
+  // Filtres
+  if(txFilter.op!=='all')txs=txs.filter(t=>t.op===txFilter.op);
+  if(txFilter.env!=='all')txs=txs.filter(t=>inferEnvelope(t)===txFilter.env);
+  if(txFilter.q){const q=txFilter.q.toLowerCase();txs=txs.filter(t=>String(t.name).toLowerCase().includes(q)||String(t.sym).toLowerCase().includes(q)||String(t.platform).toLowerCase().includes(q));}
+  txs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  // Totaux
+  const totalInvest=txs.filter(t=>t.op==='buy').reduce((s,t)=>s+toE(num(t.qty)*num(t.price)+feeTotal(t),t.cur),0);
+  const totalSold=txs.filter(t=>t.op==='sell').reduce((s,t)=>s+toE(num(t.qty)*num(t.price),t.cur),0);
+  const totalRealized=txs.filter(t=>t.op==='sell').reduce((s,t)=>s+(rmap[t.id]??num(t.realizedPl)),0);
+  const envOptions=['all',...ENVELOPES];
+  byId('content').innerHTML=`<div class="stack">
+    <div class="toolbar"><div class="fa"><button class="btn btn-p" onclick="showTxForm()">Ajouter transaction</button></div>
+    <div class="fa">
+      <select onchange="txFilter.op=this.value;renderTransactions()" style="max-width:130px"><option value="all"${txFilter.op==='all'?' selected':''}>Tout</option><option value="buy"${txFilter.op==='buy'?' selected':''}>Achats</option><option value="sell"${txFilter.op==='sell'?' selected':''}>Ventes</option></select>
+      <select onchange="txFilter.env=this.value;renderTransactions()" style="max-width:150px">${envOptions.map(e=>`<option value="${e}"${txFilter.env===e?' selected':''}>${e==='all'?'Toutes enveloppes':e}</option>`).join('')}</select>
+      <input type="text" placeholder="Rechercher…" value="${esc(txFilter.q)}" oninput="txFilter.q=this.value;renderTransactions()" style="min-width:160px">
+    </div></div>
+    <div id="tx-form"></div>
+    <div class="g3">
+      <div class="card kpi-card"><div class="kpi-lbl">Total acheté ${txFilter.op==='sell'?'(masqué)':''}</div><div class="kpi-val">${fE(totalInvest)}</div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Total vendu</div><div class="kpi-val">${fE(totalSold)}</div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Plus-value réalisée</div><div class="kpi-val ${totalRealized>=0?'pos':'neg'}">${fE(totalRealized)}</div></div>
+    </div>
+    <div class="card flush"><div class="tbl-wrap"><table>
+      <thead><tr><th class="l">Date</th><th class="l">Actif</th><th class="l">Op.</th><th>Qté</th><th>Prix</th><th>Frais</th><th>Réalisé</th><th class="l">Enveloppe</th><th></th></tr></thead>
+      <tbody>${txs.length?txs.map(t=>`<tr>
+        <td class="l muted">${esc(t.date)}</td>
+        <td class="l"><div class="asset-name">${esc(t.name)}</div><div class="asset-sub">${esc(t.sym)} · ${esc(t.platform)}</div></td>
+        <td class="l"><span class="badge ${t.op==='buy'?'b-live':'b-manual'}">${t.op==='buy'?'Achat':'Vente'}</span></td>
+        <td>${fN(t.qty)}</td><td>${fM(t.price,t.cur)}</td>
+        <td>${feeTotal(t)?fM(feeTotal(t),t.cur):'—'}</td>
+        <td class="${(rmap[t.id]??num(t.realizedPl))>=0?'pos':'neg'}">${t.op==='sell'?fE(rmap[t.id]??num(t.realizedPl)):'—'}</td>
+        <td class="l muted">${esc(inferEnvelope(t))}</td>
+        <td style="white-space:nowrap"><button class="icon-btn" onclick="editTx('${t.id}')" title="Modifier">✏️</button> <button class="icon-btn" onclick="delTx('${t.id}')" title="Supprimer">×</button></td>
+      </tr>`).join(''):`<tr><td colspan="9" class="empty">${(txFilter.op!=='all'||txFilter.env!=='all'||txFilter.q)?'Aucune transaction pour ces filtres.':'Aucune transaction.'}</td></tr>`}</tbody>
+    </table></div></div>
+    <div class="note">${txs.length} transaction${txs.length>1?'s':''} affichée${txs.length>1?'s':''} sur ${S.transactions.length} au total.</div>
+  </div>`;
+}
+
+function showTxForm(prefill={}){byId('tx-form').innerHTML=`<div class="card"><div class="card-title">${prefill._editId?"Modifier la transaction":"Nouvelle transaction"}</div><input type="hidden" id="f-edit-id" value="${prefill._editId||''}""><div class="fgrid"><div class="fl wide"><label>Ticker</label><div class="autocomplete-wrap"><input id="fs" value="${prefill.sym||''}" oninput="acSearch(this.value)" autocomplete="off" style="text-transform:uppercase"><div class="autocomplete-list" id="ac-list" style="display:none"></div></div></div><div class="fl"><label>Nom</label><input id="fn" value="${esc(prefill.name||'')}"></div><div class="fl"><label>Type</label><select id="ft">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}" ${prefill.type===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Opération</label><select id="fo"><option value="buy">Achat</option><option value="sell">Vente</option></select></div><div class="fl"><label>Enveloppe</label><select id="fe">${ENVELOPES.map(e=>`<option ${(prefill.envelope||inferEnvelope(prefill))===e?'selected':''}>${e}</option>`).join('')}</select></div><div class="fl"><label>Plateforme</label><select id="fp">${PLATFORMS.map(pf=>`<option ${(prefill.platform||'Trade Republic')===pf?'selected':''}>${pf}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="fc">${['EUR','USD','CHF'].map(c=>`<option ${prefill.cur===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="fl"><label>Quantité</label><input id="fq" type="number" value="${prefill.qty||''}"></div><div class="fl"><label>Prix unitaire payé / vendu</label><input id="fpr" type="number" value="${prefill.price||''}"></div><div class="fl"><label>Frais ordre</label><input id="ff" type="number" value="${prefill.fees||0}"></div><div class="fl"><label>Frais change</label><input id="ffx" type="number" value="0"></div><div class="fl"><label>Spread / prime estimée</label><input id="fsp" type="number" value="0"></div><div class="fl"><label>Frais courtier / garde</label><input id="fbr" type="number" value="0"></div><div class="fl"><label>Date</label><input id="fd" type="date" value="${prefill.date||today()}"></div><div class="fl"><label>Poids or</label><input id="fgw" type="number"></div><div class="fl"><label>Type or</label><select id="fgk"><option></option><option>pièce</option><option>lingotin</option><option>once</option><option>autre</option></select></div><div class="fl"><label>Spot or</label><input id="fgs" type="number" value="${S.goldSpot||''}"></div><div class="fl wide"><label>Commentaire</label><textarea id="fco"></textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveTx()">Enregistrer</button><button class="btn btn-g" onclick="byId('tx-form').innerHTML=''">Annuler</button></div></div>`}
 function acSearch(val){const list=byId('ac-list');if(!list||!val){list.style.display='none';return;}const q=val.toUpperCase(),cat=assetCatalog();const matches=Object.entries(cat).filter(([k,v])=>k.includes(q)||String(v.name).toUpperCase().includes(q)).slice(0,9);if(!matches.length){list.innerHTML=`<div class="ac-item"><div><div class="ac-name">Actif personnalisé possible</div><div class="ac-type">Ajoute-le dans Portefeuille si tu veux le réutiliser</div></div></div>`;list.style.display='block';return;}list.innerHTML=matches.map(([k,v])=>`<div class="ac-item" onmousedown="acSelect('${k}')"><div><div class="ac-name">${k} — ${esc(v.name)}</div><div class="ac-type">${TYPES[v.type]||v.type} · ${v.cur}</div></div><span class="badge b-${v.type}">${TYPES[v.type]||v.type}</span></div>`).join('');list.style.display='block';}
-function acSelect(sym){const i=assetCatalog()[sym];byId('fs').value=sym;byId('fn').value=i.name;byId('ft').value=i.type;byId('fc').value=i.cur||'EUR';byId('fe').value=inferEnvelope({type:i.type,platform:i.platform});byId('fp').value=i.platform||byId('fp').value;byId('ac-list').style.display='none';}
+function acSelect(sym){const i=assetCatalog()[sym];byId('fs').value=sym;byId('fn').value=i.name;byId('ft').value=i.type;byId('fc').value=i.cur||'EUR';const env=inferEnvelope({type:i.type,platform:byId('fp')?.value||''});if(byId('fe'))byId('fe').value=env;byId('ac-list').style.display='none';}
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap')){['ac-list','dac-list'].forEach(id=>{const l=byId(id);if(l)l.style.display='none';});}});
-function saveTx(){const sym=byId('fs').value.trim().toUpperCase(),name=byId('fn').value.trim(),qty=num(byId('fq').value),price=num(byId('fpr').value);if(!sym||!name||qty<=0||price<=0){toast('Ticker, nom, quantité et prix requis');return;}let tx={id:cid(),date:byId('fd').value||today(),name,sym,type:byId('ft').value,envelope:byId('fe').value,platform:byId('fp').value.trim(),cur:byId('fc').value,op:byId('fo').value,qty,price,fees:num(byId('ff').value),fxFees:num(byId('ffx').value),spreadFees:num(byId('fsp').value),brokerFees:num(byId('fbr').value),goldWeight:num(byId('fgw').value),goldKind:byId('fgk').value,spotPrice:num(byId('fgs').value),comment:byId('fco').value.trim()};if(tx.op==='sell'){const preview=salePreview(tx);if(preview.error){toast(preview.error);return;}tx.realizedPl=preview.realized;tx.proceeds=preview.proceeds;tx.avgCost=preview.avgCost;}S.transactions.push(tx);if(!S.prices[sym.toLowerCase()])S.prices[sym.toLowerCase()]={price,cur:tx.cur,src:'manuel',at:new Date().toISOString()};save();toast(tx.op==='sell'?'Vente enregistrée avec plus-value réalisée':'Transaction ajoutée');renderTransactions();renderSpotBar();}
+function saveTx(){const sym=byId('fs').value.trim().toUpperCase(),name=byId('fn').value.trim(),qty=num(byId('fq').value),price=num(byId('fpr').value);if(!sym||!name||qty<=0||price<=0){toast('Ticker, nom, quantité et prix requis');return;}const editId=byId('f-edit-id')?.value||null;let tx={id:editId||cid(),date:byId('fd').value||today(),name,sym,type:byId('ft').value,envelope:byId('fe').value,platform:byId('fp').value.trim(),cur:byId('fc').value,op:byId('fo').value,qty,price,fees:num(byId('ff').value),fxFees:num(byId('ffx').value),spreadFees:num(byId('fsp').value),brokerFees:num(byId('fbr').value),goldWeight:num(byId('fgw').value),goldKind:byId('fgk').value,spotPrice:num(byId('fgs').value),comment:byId('fco').value.trim()};if(tx.op==='sell'){const preview=salePreview(tx);if(preview.error){toast(preview.error);return;}tx.realizedPl=preview.realized;tx.proceeds=preview.proceeds;tx.avgCost=preview.avgCost;}if(editId){S.transactions=S.transactions.map(t=>t.id===editId?tx:t);toast('Transaction modifiée');}else{S.transactions.push(tx);toast(tx.op==='sell'?'Vente enregistrée':'Transaction ajoutée');}if(!S.prices[sym.toLowerCase()])S.prices[sym.toLowerCase()]={price,cur:tx.cur,src:'manuel',at:new Date().toISOString()};save();renderTransactions();renderSpotBar();}
 function salePreview(tx){let qty=0,cost=0;[...S.transactions].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(t=>{if((t.date||'')>(tx.date||'9999-12-31'))return;if(t.sym!==tx.sym||inferEnvelope(t)!==tx.envelope||t.platform!==tx.platform)return;const q=num(t.qty),gross=toE(q*num(t.price),t.cur),fees=toE(feeTotal(t),t.cur);if(t.op==='buy'){qty+=q;cost+=gross+fees}else if(t.op==='sell'){const sq=Math.min(q,qty);if(sq<=0)return;const avg=qty?cost/qty:0;qty-=sq;cost-=avg*sq;}});if(tx.qty>qty+1e-10)return{error:'Quantité vendue supérieure à la position disponible'};const avg=qty?cost/qty:0,proceeds=toE(tx.qty*tx.price,tx.cur)-toE(feeTotal(tx),tx.cur),realized=proceeds-avg*tx.qty;return{avgCost:avg,proceeds,realized};}
+function editTx(id){
+  const t=S.transactions.find(x=>x.id===id);
+  if(!t)return;
+  showTxForm({
+    sym:t.sym,name:t.name,type:t.type,op:t.op,
+    envelope:t.envelope,platform:t.platform,cur:t.cur,
+    date:t.date,qty:t.qty,price:t.price,
+    fees:t.fees,fxFees:t.fxFees,spreadFees:t.spreadFees,brokerFees:t.brokerFees,
+    goldWeight:t.goldWeight,goldKind:t.goldKind,spotPrice:t.spotPrice,
+    comment:t.comment,_editId:id
+  });
+  // Scroll vers le formulaire
+  byId('tx-form').scrollIntoView({behavior:'smooth',block:'start'});
+}
 function delTx(id){if(!confirm('Supprimer cette transaction ?'))return;S.transactions=S.transactions.filter(t=>t.id!==id);save();toast('Transaction supprimée');renderTransactions();}
 function renderIncome(){const rows=[...(S.income||[])].sort((a,b)=>(b.date||'').localeCompare(a.date||''));const total=incomeNet(),capital=totals().inv,byYear={},byMonth={},byKind={};rows.forEach(i=>{const net=toE(num(i.netAmount||num(i.grossAmount)-num(i.tax)),i.cur);byYear[i.date?.slice(0,4)||'—']=(byYear[i.date?.slice(0,4)||'—']||0)+net;byMonth[i.date?.slice(0,7)||'—']=(byMonth[i.date?.slice(0,7)||'—']||0)+net;byKind[i.type]=(byKind[i.type]||0)+net;});byId('content').innerHTML=`<div class="stack"><div class="toolbar"><button class="btn btn-p" onclick="showIncomeForm()">Ajouter revenu</button></div><div id="income-form"></div><div class="g4"><div class="card kpi-card"><div class="kpi-lbl">Total reçu net</div><div class="kpi-val">${fE(total)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Rendement sur capital investi</div><div class="kpi-val">${capital?fP(total/capital*100):'—'}</div></div><div class="card kpi-card"><div class="kpi-lbl">Année en cours</div><div class="kpi-val">${fE(byYear[new Date().getFullYear()]||0)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Mois en cours</div><div class="kpi-val">${fE(byMonth[monthNow()]||0)}</div></div></div><div class="g3"><div class="card"><div class="card-title">Par année</div>${kvRows(byYear)}</div><div class="card"><div class="card-title">Par mois</div>${kvRows(byMonth)}</div><div class="card"><div class="card-title">Par type</div>${kvRows(Object.fromEntries(Object.entries(byKind).map(([k,v])=>[INCOME_TYPES[k]||k,v])))}</div></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Date</th><th class="l">Lien</th><th class="l">Type</th><th>Brut</th><th>Fiscalité</th><th>Net</th><th class="l">Réinvesti</th><th></th></tr></thead><tbody>${rows.map(i=>`<tr><td class="l muted">${esc(i.date)}</td><td class="l">${esc(i.linked||'—')}</td><td class="l">${INCOME_TYPES[i.type]||i.type}</td><td>${fM(i.grossAmount,i.cur)}</td><td>${i.tax?fM(i.tax,i.cur):'—'}</td><td>${fE(toE(i.netAmount||num(i.grossAmount)-num(i.tax),i.cur))}</td><td class="l">${i.reinvested?'Oui':'Non'}</td><td><button class="icon-btn" onclick="delIncome('${i.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun revenu enregistré.</td></tr>`}</tbody></table></div></div></div>`}
 function kvRows(obj){const e=Object.entries(obj).sort((a,b)=>String(b[0]).localeCompare(String(a[0])));return e.length?e.map(([k,v])=>`<div class="move-row"><span>${esc(k)}</span><b>${fE(v)}</b></div>`).join(''):'<div class="empty">Pas assez de données.</div>'}
@@ -565,75 +702,99 @@ function myMarketItems(){
 }
 async function renderMarket(force=false){
   const sections=myMarketItems();
+  const hasKey=!!(S.settings?.alphaVantageKey);
   byId('content').innerHTML=`<div class="stack">
     <div class="card"><div class="toolbar"><div>
-      <div class="card-title" style="margin:0">Mes march\u00e9s</div>
-      <div class="hint">Crypto en direct (CoinGecko). ETF & actions: dernier prix connu \u2014 clique sur un prix pour le mettre \u00e0 jour \u00e0 la main.</div>
+      <div class="card-title" style="margin:0">Mes marchés</div>
+      <div class="hint">Crypto via CoinGecko · ETF & actions via Alpha Vantage${hasKey?'':' <b>(clé manquante → Réglages)</b>'}. Clique sur un prix pour le saisir manuellement.</div>
     </div><div class="fa">
-      <button class="btn btn-p" onclick="renderMarket(true)">\u21bb Actualiser crypto</button>
+      <button class="btn btn-p" onclick="renderMarket(true)">↻ Actualiser</button>
     </div></div></div>
     ${sections.map(s=>`<div><div class="section-title">${s.section}</div><div class="market-grid">${s.items.map(it=>{
-      const p=S.prices[String(it.localSym).toLowerCase()];
-      const priceTxt=p&&num(p.price)>0?fM(p.price,p.cur||it.cur||'EUR'):'\u2014';
+      const p=S.prices[String(it.localSym||'').toLowerCase()];
+      const priceTxt=p&&num(p.price)>0?fM(p.price,p.cur||it.cur||'EUR'):'—';
       const isLive=p&&p.src==='live';
-      const badge=it.kind==='crypto'?'<span class="badge b-manual">\u2014</span>':`<span class="badge ${isLive?'b-live':'b-manual'}">${isLive?'live':'manuel'}</span>`;
-      const sub=p?.at?ago(p.at):'jamais';
-      const clickAttr=it.kind!=='crypto'?`onclick="editPrice('${it.sym}',${p?num(p.price):0})" style="cursor:pointer" title="Cliquer pour modifier le prix"`:'';
+      const badge=it.kind==='crypto'?'<span class="badge b-manual">—</span>':`<span class="badge ${isLive?'b-live':'b-manual'}">${isLive?'live':'manuel'}</span>`;
+      const clickAttr=`onclick="editPrice('${it.sym||it.localSym}',${p?num(p.price):0})" style="cursor:pointer" title="Cliquer pour saisir le prix"`;
       return `<div class="market-card" id="${qid(it.cgId||it.sym)}" ${clickAttr}>
         <div class="mc-top"><div>
           <div class="mc-label">${esc(it.label)}</div>
-          <div class="mc-ticker">${esc(it.sym)}</div>
+          <div class="mc-ticker">${esc(it.sym||it.cgId||'')}</div>
         </div>${badge}</div>
         <div class="mc-price">${priceTxt}</div>
-        <div class="mc-loading">${it.kind==='crypto'?'Chargement\u2026':(isLive?'Dernier live':'Prix manuel')}</div>
-        <div class="mc-source">${it.kind==='crypto'?'':sub}</div>
+        <div class="mc-loading">${it.kind==='crypto'?'Chargement…':(isLive?'En direct':p?'Dernier manuel':'—')}</div>
+        <div class="mc-source">${p?.at?ago(p.at):''}</div>
       </div>`;
     }).join('')}</div></div>`).join('')}
   </div>`;
-  // Crypto live via CoinGecko (1 seul appel direct, pas de CORS)
+
+  // 1. Crypto via CoinGecko (pas de CORS)
   const cryptoItems=sections.flatMap(s=>s.items).filter(it=>it.kind==='crypto');
   if(cryptoItems.length){
     const ids=[...new Set(cryptoItems.map(it=>it.cgId))].join(',');
     try{
-      const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=eur`);
-      const j=await res.json();
+      const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=eur&include_24hr_change=true`).then(r=>r.json());
+      const now=new Date().toISOString();
       cryptoItems.forEach(it=>{
         const card=byId(qid(it.cgId));if(!card)return;
         const price=j?.[it.cgId]?.eur;
+        const chg=j?.[it.cgId]?.eur_24h_change;
         if(price){
-          S.prices[it.localSym.toLowerCase()]={price,cur:'EUR',src:'live',at:new Date().toISOString()};
+          S.prices[it.localSym.toLowerCase()]={price,cur:'EUR',src:'live',at:now};
           card.querySelector('.mc-price').textContent=fM(price,'EUR');
-          card.querySelector('.mc-loading').className='mc-loading';
-          card.querySelector('.mc-loading').textContent='En direct';
-          card.querySelector('.mc-source').textContent='CoinGecko \u00b7 maintenant';
+          const ld=card.querySelector('.mc-loading');
+          if(chg!=null){ld.className='mc-chg '+(chg>=0?'pos':'neg');ld.textContent=`${chg>=0?'▲ +':'▼ '}${chg.toFixed(2)} % (24h)`;}
+          else{ld.className='mc-loading';ld.textContent='En direct';}
+          card.querySelector('.mc-source').textContent='CoinGecko';
           card.querySelector('.badge').className='badge b-live';
           card.querySelector('.badge').textContent='live';
-        }else{
-          card.querySelector('.mc-loading').className='mc-loading mc-error';
-          card.querySelector('.mc-loading').textContent='Indisponible';
         }
       });
       save();renderSpotBar();
-    }catch(e){
-      cryptoItems.forEach(it=>{
-        const card=byId(qid(it.cgId));if(!card)return;
-        const p=S.prices[it.localSym.toLowerCase()];
-        if(p&&num(p.price)>0){
-          card.querySelector('.mc-price').textContent=fM(p.price,'EUR');
-          card.querySelector('.mc-loading').textContent='Dernier connu';
-        }else{
-          card.querySelector('.mc-loading').className='mc-loading mc-error';
-          card.querySelector('.mc-loading').textContent='CoinGecko indisponible';
-        }
-      });
+    }catch(e){}
+  }
+
+  // 2. ETF + actions via Alpha Vantage (CORS ouvert, 25 appels/jour)
+  if(hasKey){
+    const stockItems=sections.flatMap(s=>s.items).filter(it=>it.kind!=='crypto');
+    // On limite à 5 appels par actualisation pour préserver le quota (25/jour)
+    const toFetch=force?stockItems:stockItems.filter(it=>{
+      const cached=marketCache[it.ticker];
+      return !cached||Date.now()-cached.ts>4*60*60*1000; // cache 4h
+    }).slice(0,5);
+    for(const it of toFetch){
+      const card=byId(qid(it.sym));if(!card)return;
+      card.querySelector('.mc-loading').textContent='Chargement…';
+      const r=await fetchStockPrice(it.ticker||it.sym);
+      if(r){
+        const data={price:r.price,cur:r.currency||it.cur||'EUR',source:r.source,prev:r.prev,ts:Date.now()};
+        marketCache[it.ticker||it.sym]=data;
+        const eur=toE(r.price,r.currency||it.cur||'EUR');
+        const localPrice=fromE(eur,it.cur||'EUR');
+        S.prices[String(it.localSym||it.sym).toLowerCase()]={price:localPrice,cur:it.cur||'EUR',src:'live',at:new Date().toISOString()};
+        card.querySelector('.mc-price').textContent=fM(r.price,r.currency||it.cur||'EUR');
+        card.querySelector('.mc-loading').className='mc-loading';
+        card.querySelector('.mc-loading').textContent='En direct';
+        card.querySelector('.mc-source').textContent='Alpha Vantage';
+        card.querySelector('.badge').className='badge b-live';
+        card.querySelector('.badge').textContent='live';
+        save();renderSpotBar();
+      } else {
+        const fb=S.prices[String(it.localSym||it.sym).toLowerCase()];
+        card.querySelector('.mc-loading').className=fb?'mc-loading':'mc-loading mc-error';
+        card.querySelector('.mc-loading').textContent=fb?'Dernier manuel':'Aucune donnée';
+      }
+      // Pause 12s entre chaque appel AV (limite 5/min)
+      if(toFetch.indexOf(it)<toFetch.length-1)await new Promise(r=>setTimeout(r,12000));
     }
   }
 }
+
 function formatMarketPrice(d,it){if(it.kind==='ratio')return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:4}).format(num(d.price));if(it.kind==='index')return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2}).format(num(d.price));return fM(d.price,d.cur==='EUR'?'EUR':d.cur||'USD');}
 let marketHistoryCache={};
 async function runLimited(items,limit,fn){const queue=[...items];const workers=Array.from({length:Math.min(limit,queue.length)},async()=>{while(queue.length){await fn(queue.shift());}});await Promise.all(workers);}
 function updateMarketCard(card,d,it){card.querySelector('.mc-price').textContent=formatMarketPrice(d,it);const chg=d.prev?((d.price-d.prev)/d.prev)*100:null;card.querySelector('.mc-loading').className=chg==null?'mc-loading':'mc-chg '+(chg>=0?'pos':'neg');card.querySelector('.mc-loading').textContent=chg==null?'En direct':`${chg>=0?'▲ +':'▼ '}${chg.toFixed(2)} %`;card.querySelector('.mc-source').textContent=`${d.source||'live'} · ${ago(new Date(d.ts).toISOString())}`;card.querySelector('.badge').className='badge b-live';card.querySelector('.badge').textContent='live';}
-function renderDca(){const plan=monthlyPlanSummary(),mk=plan.mk,lines=plan.lines,execs=S.dca.executions||[],done=plan.done,planned=plan.planned,actual=plan.actual;byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="hint">Plan mensuel limité aux enveloppes alimentées: PEA, CTO et crypto. Assurance-vie, 3e pilier et PEL restent en suivi patrimonial.</div><button class="btn btn-p" onclick="showDcaForm()">Ajouter ligne</button></div><div id="dca-form"></div><div class="g3"><div class="card kpi-card"><div class="kpi-lbl">Prévu ce mois</div><div class="kpi-val">${fE(planned)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Déjà exécuté</div><div class="kpi-val pos">${fE(actual)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Reste à investir</div><div class="kpi-val">${fE(Math.max(0,planned-actual))}</div></div></div><div class="card"><div class="card-title">Plan du mois — ${mk}</div>${lines.map(l=>{const ex=done(l.id);return`<div class="dca-row"><button class="chk ${ex?'on':''}" onclick="executeDca('${l.id}')">${ex?'✓':''}</button><div><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · jour ${l.day||'—'}</div></div><span>${fE(l.plannedAmt)}</span><span>${ex?fE(ex.actual):'—'}</span><span class="${ex&&ex.actual-l.plannedAmt>=0?'pos':'neg'}">${ex?fE(ex.actual-l.plannedAmt):'—'}</span><span class="muted">${esc(l.platform)}</span><button class="icon-btn" onclick="delDcaLine('${l.id}')">×</button></div>`}).join('')||'<div class="empty">Aucune ligne mensuelle active.</div>'}</div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Mois</th><th class="l">Actif</th><th>Prévu</th><th>Brut réel</th><th>Frais</th><th>Qté</th><th>Écart</th><th class="l">Transaction</th></tr></thead><tbody>${execs.slice().reverse().map(e=>`<tr><td class="l">${e.month}</td><td class="l">${esc(e.name)}</td><td>${fE(e.planned)}</td><td>${fE(e.actual)}</td><td>${num(e.fees)+num(e.spreadFees)?fE(num(e.fees)+num(e.spreadFees)):'—'}</td><td>${e.qty?fN(e.qty):'—'}</td><td class="${e.actual-e.planned>=0?'pos':'neg'}">${fE(e.actual-e.planned)}</td><td class="l muted">${e.txId?'créée':'non créée'}</td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun historique mensuel.</td></tr>`}</tbody></table></div></div></div>`}
+function renderDca(){const plan=monthlyPlanSummary(),mk=plan.mk,lines=plan.lines,execs=S.dca.executions||[],done=plan.done,planned=plan.planned,actual=plan.actual;byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="hint">Plan mensuel limité aux enveloppes alimentées: PEA, CTO et crypto. Assurance-vie, 3e pilier et PEL restent en suivi patrimonial.</div><button class="btn btn-p" onclick="showDcaForm()">Ajouter ligne</button></div><div id="dca-form"></div><div class="g3"><div class="card kpi-card"><div class="kpi-lbl">Prévu ce mois</div><div class="kpi-val">${fE(planned)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Déjà exécuté</div><div class="kpi-val pos">${fE(actual)}</div><div class="progress" style="margin-top:8px"><span style="width:${planned>0?clamp(actual/planned*100,0,100):0}%"></span></div><div class="hint" style="margin-top:4px">${planned>0?(actual/planned*100).toFixed(0):0}% du plan</div></div><div class="card kpi-card"><div class="kpi-lbl">Reste à investir</div><div class="kpi-val">${fE(Math.max(0,planned-actual))}</div></div></div><div class="card"><div class="card-title">Plan du mois — ${mk}</div>${lines.map(l=>{const ex=done(l.id);return`<div class="dca-row"><button class="chk ${ex?'on':''}" onclick="executeDca('${l.id}')">${ex?'✓':''}</button><div><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · jour ${l.day||'—'}</div></div><span>${fE(l.plannedAmt)}</span><span>${ex?fE(ex.actual):'—'}</span><span class="${ex&&ex.actual-l.plannedAmt>=0?'pos':'neg'}">${ex?fE(ex.actual-l.plannedAmt):'—'}</span><span class="muted">${esc(l.platform)}</span><button class="icon-btn" onclick="delDcaLine('${l.id}')">×</button></div>`}).join('')||'<div class="empty">Aucune ligne mensuelle active.</div>'}</div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Mois</th><th class="l">Actif</th><th>Prévu</th><th>Brut réel</th><th>Frais</th><th>Qté</th><th>Écart</th><th class="l">Transaction</th></tr></thead><tbody>${execs.slice().reverse().map(e=>`<tr><td class="l">${e.month}</td><td class="l">${esc(e.name)}</td><td>${fE(e.planned)}</td><td>${fE(e.actual)}</td><td>${num(e.fees)+num(e.spreadFees)?fE(num(e.fees)+num(e.spreadFees)):'—'}</td><td>${e.qty?fN(e.qty):'—'}</td><td class="${e.actual-e.planned>=0?'pos':'neg'}">${fE(e.actual-e.planned)}</td><td class="l muted">${e.txId?'créée':'non créée'}</td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun historique mensuel.</td></tr>`}</tbody></table></div></div></div>`}
 function showDcaForm(){byId('dca-form').innerHTML=`<div class="card"><div class="card-title">Nouvelle ligne mensuelle</div><div style="display:flex;gap:10px;margin-bottom:10px"><div class="fl" style="flex:1"><label>Ticker</label><div class="autocomplete-wrap"><input id="ds" style="text-transform:uppercase;width:100%" oninput="dcaAcSearch(this.value)" autocomplete="off" placeholder="Ex: AO00, ESEE, BTC…"><div class="autocomplete-list" id="dac-list" style="display:none"></div></div></div><div class="fl" style="flex:2"><label>Nom</label><input id="dn" placeholder="Rempli automatiquement"></div></div><div class="fgrid" style="overflow:visible"><div class="fl"><label>Type</label><select id="dt">${Object.entries(TYPES).filter(([k])=>['etf','stock','crypto'].includes(k)).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Montant prévu</label><input id="da" type="number"></div><div class="fl"><label>Fréquence</label><select id="df"><option>Mensuelle</option><option>Trimestrielle</option><option>Hebdomadaire</option></select></div><div class="fl"><label>Plateforme</label><select id="dp">${PLATFORMS.map(pf=>`<option>${pf}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="dc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Jour du mois</label><input id="dd" type="number" value="5"></div><div class="fl"><label>Enveloppe</label><select id="de">${DCA_ENVELOPES.map(e=>`<option>${e}</option>`).join('')}</select></div></div><div class="fa"><button class="btn btn-p" onclick="saveDcaLine()">Enregistrer</button><button class="btn btn-g" onclick="byId('dca-form').innerHTML=''">Annuler</button></div></div>`}
 function dcaAcSearch(val){const list=byId('dac-list');if(!list||!val){if(list)list.style.display='none';return;}const q=val.toUpperCase(),cat=assetCatalog();const matches=Object.entries(cat).filter(([k,v])=>k.includes(q)||String(v.name).toUpperCase().includes(q)).slice(0,9);if(!matches.length){list.style.display='none';return;}list.innerHTML=matches.map(([k,v])=>`<div class="ac-item" onmousedown="dcaAcSelect('${k}')"><div><div class="ac-name">${k} — ${esc(v.name)}</div><div class="ac-type">${TYPES[v.type]||v.type} · ${v.cur}</div></div><span class="badge b-${v.type}">${TYPES[v.type]||v.type}</span></div>`).join('');list.style.display='block';}
 function dcaAcSelect(sym){const i=assetCatalog()[sym];byId('ds').value=sym;if(byId('dn'))byId('dn').value=i.name;if(byId('dt')&&['etf','stock','crypto'].includes(i.type))byId('dt').value=i.type;if(byId('dc'))byId('dc').value=i.cur||'EUR';if(byId('dp')&&i.platform)byId('dp').value=i.platform;if(byId('de'))byId('de').value=inferEnvelope({type:i.type,platform:i.platform});byId('dac-list').style.display='none';}
@@ -664,7 +825,24 @@ function executeDca(id){
   save();toast('Plan mensuel exécuté');renderDca();
 }
 function delDcaLine(id){if(!confirm('Supprimer cette ligne DCA ?'))return;S.dca.lines=S.dca.lines.filter(l=>l.id!==id);save();renderDca();}
-function renderAllocation(){const items=strategyItems(),baseValue=sumItems(items);function valFor(t){if(t.matchType==='symbol')return items.filter(i=>i.sym===String(t.matchValue).toUpperCase()).reduce((s,i)=>s+i.value,0);if(t.matchType==='type')return items.filter(i=>i.type===t.matchValue).reduce((s,i)=>s+i.value,0);if(t.matchType==='envelope')return items.filter(i=>i.envelope===t.matchValue).reduce((s,i)=>s+i.value,0);return 0}byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="hint">Simulation indicative basée sur tes cibles. Base utilisée: portefeuille piloté (${fE(baseValue)}) = PEA, CTO, crypto et cash disponible. Assurance-vie, 3e pilier et PEL gelés sont exclus.</div><button class="btn btn-p" onclick="addTarget()">Ajouter cible</button></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Cible</th><th class="l">Règle</th><th>Actuel</th><th>Cible</th><th>Écart €</th><th>Écart %</th><th class="l">Recommandation mécanique</th><th></th></tr></thead><tbody>${(S.targetAllocation||[]).map(t=>{const v=valFor(t),cur=baseValue?v/baseValue*100:0,target=num(t.targetPct),targetE=baseValue*target/100,diff=targetE-v,rec=Math.abs(diff)<50?'Ne rien faire':diff>0?`Acheter / renforcer ${esc(t.label)} pour environ ${fE(diff)}`:`Ne pas renforcer ${esc(t.label)} ce mois-ci`;return`<tr><td class="l"><input class="mini-input" value="${esc(t.label)}" onchange="editTarget('${t.id}','label',this.value)"></td><td class="l"><select class="mini-input" onchange="editTarget('${t.id}','matchType',this.value)"><option value="symbol" ${t.matchType==='symbol'?'selected':''}>Ticker</option><option value="type" ${t.matchType==='type'?'selected':''}>Type</option><option value="envelope" ${t.matchType==='envelope'?'selected':''}>Enveloppe</option></select><input class="mini-input" value="${esc(t.matchValue)}" onchange="editTarget('${t.id}','matchValue',this.value)" style="margin-top:5px"></td><td>${cur.toFixed(1)}%</td><td><input class="mini-input" type="number" value="${target}" onchange="editTarget('${t.id}','targetPct',this.value)"></td><td class="${diff>=0?'pos':'neg'}">${fE(diff)}</td><td class="${target-cur>=0?'pos':'neg'}">${(target-cur).toFixed(1)} pts</td><td class="l">${rec}</td><td><button class="icon-btn" onclick="delTarget('${t.id}')">×</button></td></tr>`}).join('')}</tbody></table></div></div></div>`}
+function renderAllocation(){const items=strategyItems(),baseValue=sumItems(items);function valFor(t){if(t.matchType==='symbol')return items.filter(i=>i.sym===String(t.matchValue).toUpperCase()).reduce((s,i)=>s+i.value,0);if(t.matchType==='type')return items.filter(i=>i.type===t.matchValue).reduce((s,i)=>s+i.value,0);if(t.matchType==='envelope')return items.filter(i=>i.envelope===t.matchValue).reduce((s,i)=>s+i.value,0);return 0}killCharts();byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="hint">Simulation indicative basée sur tes cibles. Base utilisée: portefeuille piloté (${fE(baseValue)}) = PEA, CTO, crypto et cash disponible. Assurance-vie, 3e pilier et PEL gelés sont exclus.</div><button class="btn btn-p" onclick="addTarget()">Ajouter cible</button></div><div class="g2" id="alloc-donuts" style="margin-bottom:14px"></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Cible</th><th class="l">Règle</th><th>Actuel</th><th>Cible</th><th>Écart €</th><th>Écart %</th><th class="l">Recommandation mécanique</th><th></th></tr></thead><tbody>${(S.targetAllocation||[]).map(t=>{const v=valFor(t),cur=baseValue?v/baseValue*100:0,target=num(t.targetPct),targetE=baseValue*target/100,diff=targetE-v,rec=Math.abs(diff)<50?'Ne rien faire':diff>0?`Acheter / renforcer ${esc(t.label)} pour environ ${fE(diff)}`:`Ne pas renforcer ${esc(t.label)} ce mois-ci`;return`<tr><td class="l"><input class="mini-input" value="${esc(t.label)}" onchange="editTarget('${t.id}','label',this.value)"></td><td class="l"><select class="mini-input" onchange="editTarget('${t.id}','matchType',this.value)"><option value="symbol" ${t.matchType==='symbol'?'selected':''}>Ticker</option><option value="type" ${t.matchType==='type'?'selected':''}>Type</option><option value="envelope" ${t.matchType==='envelope'?'selected':''}>Enveloppe</option></select><input class="mini-input" value="${esc(t.matchValue)}" onchange="editTarget('${t.id}','matchValue',this.value)" style="margin-top:5px"></td><td>${cur.toFixed(1)}%</td><td><input class="mini-input" type="number" value="${target}" onchange="editTarget('${t.id}','targetPct',this.value)"></td><td class="${diff>=0?'pos':'neg'}">${fE(diff)}</td><td class="${target-cur>=0?'pos':'neg'}">${(target-cur).toFixed(1)} pts</td><td class="l">${rec}</td><td><button class="icon-btn" onclick="delTarget('${t.id}')">×</button></td></tr>`}).join('')}</tbody></table></div></div></div>`;
+  const targets=(S.targetAllocation||[]).filter(t=>num(t.targetPct)>0);
+  if(targets.length&&baseValue>0){
+    const PALETTE=['#9b8cff','#e0a458','#4f9dde','#43d39a','#e8c56a','#d4537e','#7dd3fc','#a1a1aa','#97c459','#f0997b'];
+    const labels=targets.map(t=>t.label);
+    const actualData=targets.map(t=>valFor(t));
+    const otherActual=Math.max(0,baseValue-actualData.reduce((s,v)=>s+v,0));
+    const targetData=targets.map(t=>baseValue*num(t.targetPct)/100);
+    const otherTarget=Math.max(0,baseValue-targetData.reduce((s,v)=>s+v,0));
+    const dn=byId('alloc-donuts');
+    if(dn){dn.innerHTML=`
+      <div class="card"><div class="card-title">Allocation actuelle</div><div class="donut-wrap" style="max-width:220px;margin:0 auto"><canvas id="alloc-actual"></canvas></div></div>
+      <div class="card"><div class="card-title">Allocation cible</div><div class="donut-wrap" style="max-width:220px;margin:0 auto"><canvas id="alloc-target"></canvas></div></div>`;
+    const mk=(id,data,extra)=>{const el=byId(id);if(!el)return;charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:[...labels,'Reste'],datasets:[{data:[...data,extra],backgroundColor:[...labels.map((_,i)=>PALETTE[i%PALETTE.length]),'#3a3f4b'],borderWidth:0}]},options:{cutout:'60%',plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fE0(ctx.parsed)} (${(ctx.parsed/baseValue*100).toFixed(1)}%)`}}}}}));};
+    mk('alloc-actual',actualData,otherActual);
+    mk('alloc-target',targetData,otherTarget);}
+  }
+}
 function editTarget(id,k,v){const t=S.targetAllocation.find(x=>x.id===id);if(t){t[k]=k==='targetPct'?num(v):v;if(k==='matchValue')t[k]=String(v).trim();save();}}
 function addTarget(){S.targetAllocation=[...(S.targetAllocation||[]),{id:cid(),label:'Nouvelle cible',matchType:'type',matchValue:'etf',targetPct:0}];save();renderAllocation();}
 function delTarget(id){S.targetAllocation=S.targetAllocation.filter(t=>t.id!==id);save();renderAllocation();}
@@ -745,6 +923,10 @@ function renderGoals(){
     const projData=years.map(y=>Math.round(proj(y)));
     const investedData=years.map(y=>Math.round(T.val+monthly*12*y));
     const targetTotal=num(g.targetTotal);
+    // Année où la projection atteint l'objectif
+    let crossYear=-1;
+    if(targetTotal>0){for(let y=0;y<=20;y++){if(proj(y)>=targetTotal){crossYear=y;break;}}}
+    const crossData=years.map(y=>y===crossYear?targetTotal:null);
     const dark=document.documentElement.getAttribute('data-theme')==='dark';
     const muted=dark?'#8b93a4':'#71757e',grid=dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.06)';
     charts.push(new Chart(el.getContext('2d'),{
@@ -752,7 +934,8 @@ function renderGoals(){
       data:{labels:years.map(y=>y===0?'Auj.':(y+' an'+(y>1?'s':''))),datasets:[
         {label:'Projection (avec rendement)',data:projData,borderColor:'#cdb78a',backgroundColor:'rgba(205,183,138,.12)',fill:true,tension:.3,pointRadius:0,borderWidth:2.5},
         {label:'Capital investi (sans rendement)',data:investedData,borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.3,pointRadius:0,borderWidth:1.5},
-        ...(targetTotal>0?[{label:'Objectif final',data:years.map(()=>targetTotal),borderColor:muted,borderDash:[6,4],fill:false,pointRadius:0,borderWidth:1.5}]:[])
+        ...(targetTotal>0?[{label:'Objectif final',data:years.map(()=>targetTotal),borderColor:muted,borderDash:[6,4],fill:false,pointRadius:0,borderWidth:1.5}]:[]),
+        ...(crossYear>=0?[{label:'Objectif atteint',data:crossData,borderColor:'#43d39a',backgroundColor:'#43d39a',pointRadius:7,pointHoverRadius:9,showLine:false,pointStyle:'star'}]:[])
       ]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},
         plugins:{legend:{display:true,labels:{color:muted,boxWidth:12,font:{size:11}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${fE0(ctx.parsed.y)}`}}},
@@ -777,11 +960,16 @@ function renderSettings(){
     <div class="card">
       <div class="card-title">Prix & sources</div>
       <div class="sources-list">
-        <div class="src-row"><span class="badge b-live">AUTO</span><b>Crypto</b><span class="muted">CoinGecko, en direct</span></div>
-        <div class="src-row"><span class="badge b-live">AUTO</span><b>Or</b><span class="muted">CoinGecko (PAXG), en direct</span></div>
-        <div class="src-row"><span class="badge b-manual">MANUEL</span><b>ETF & actions</b><span class="muted">prix saisi à la main (onglet Marchés ou Portefeuille)</span></div>
+        <div class="src-row"><span class="badge b-live">AUTO</span><b>Crypto + Or</b><span class="muted">CoinGecko, en direct, sans clé</span></div>
+        <div class="src-row"><span class="badge b-live">AUTO</span><b>ETF & actions</b><span class="muted">Alpha Vantage (clé ci-dessous) · 25 appels/jour gratuits</span></div>
+        <div class="src-row"><span class="badge b-live">AUTO</span><b>Change EUR/USD/CHF</b><span class="muted">CoinGecko, toutes les heures</span></div>
       </div>
-      <div class="note">Les prix d'ETF et d'actions européennes ne sont pas disponibles via une source gratuite fiable depuis un navigateur. Tu les mets à jour en cliquant dessus dans l'onglet Marchés.</div>
+      <div class="fgrid" style="margin-top:12px">
+        <div class="fl wide"><label>Clé Alpha Vantage <a href="https://www.alphavantage.co/support/#api-key" style="font-size:11px;margin-left:6px">Obtenir une clé gratuite →</a></label>
+          <input id="av-key" value="${S.settings?.alphaVantageKey||''}" placeholder="Ex: ABCDEF123456" onchange="S.settings.alphaVantageKey=this.value.trim();save();toast('Clé enregistrée')">
+        </div>
+      </div>
+      <div class="note">Limite gratuite : 25 appels/jour, 5/minute. Pour tes ETF + actions, ça suffit largement. Génère une nouvelle clé si tu la changes.</div>
     </div>
     <div class="card">
       <div class="card-title">Taux de change</div>
@@ -807,6 +995,28 @@ function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme
 window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
 applyTheme();updateOnline();byId('refresh-meta').textContent=`Dernier refresh : ${ago(S.lastRefresh)} · auto 4h`;renderSpotBar();if(!(S.snapshots||[]).length){createSnapshot(false)}renderDashboard();
 // Chargement live initial (crypto + or) au démarrage, sans bloquer l'affichage
+async function fetchStockPrice(ticker){
+  const key=S.settings?.alphaVantageKey;
+  if(!key)return null;
+  try{
+    const url=`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(ticker)}&apikey=${key}`;
+    const r=await fetch(url,{signal:AbortSignal.timeout(8000)});
+    const j=await r.json();
+    const q=j?.['Global Quote'];
+    if(q&&q['05. price']&&parseFloat(q['05. price'])>0){
+      return{
+        price:parseFloat(q['05. price']),
+        prev:parseFloat(q['08. previous close']||0),
+        currency:ticker.endsWith('.PA')||ticker.endsWith('.AS')||ticker.endsWith('.DE')?'EUR':
+                 ticker.endsWith('.SW')?'CHF':'USD',
+        source:'Alpha Vantage'
+      };
+    }
+    // Quota dépassé ou symbole inconnu
+    if(j?.Note||j?.Information)console.warn('AV quota/note:',j.Note||j.Information);
+  }catch(e){console.warn('AV error:',e.message);}
+  return null;
+}
 async function fetchFx(){
   const now=new Date().toISOString();
   // CoinGecko : on demande BTC en EUR + USD + CHF simultanement
