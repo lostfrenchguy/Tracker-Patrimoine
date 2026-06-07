@@ -235,24 +235,6 @@ const TYPES={etf:'ETF',stock:'Action',crypto:'Crypto',gold:'Or',cash:'Cash',assu
 const ACCOUNT_TYPES={current:'Compte courant',chf:'Compte CHF',platform:'Cash plateforme',pel:'PEL',assurance:'Assurance-vie',pillar:'3e pilier',reserve:'Réserve de sécurité',gold:'Or physique',other:'Autre'};
 const ACCOUNT_STATUS={active:'alimentée',watch:'observation',frozen:'gelée'};
 const INCOME_TYPES={dividend:'Dividende',interest:'Intérêt',coupon:'Coupon',cashback:'Cashback / bonus',crypto:'Revenu crypto'};
-const RWA={
-  // Actions tokenisées Ondo (1:1, en USD) — pour suivi automatique approximatif
-  AAPL:'apple-ondo-tokenized-stock',MSFT:'microsoft-ondo-tokenized-stock',NVDA:'nvidia-ondo-tokenized-stock',
-  AMZN:'amazon-ondo-tokenized-stock',GOOGL:'alphabet-class-a-ondo-tokenized-stock',META:'meta-platforms-ondo-tokenized-stock',
-  TSLA:'tesla-ondo-tokenized-stock',AVGO:'broadcom-ondo-tokenized-stock',AMD:'amd-ondo-tokenized-stock',
-  TSM:'taiwan-semiconductor-manufacturing-ondo-tokenized-stock',PLTR:'palantir-technologies-ondo-tokenized-stock',
-  NFLX:'netflix-ondo-tokenized-stock',ADBE:'adobe-ondo-tokenized-stock',CRM:'salesforce-ondo-tokenized-stock',
-  ORCL:'oracle-ondo-tokenized-stock',NOW:'servicenow-ondo-tokenized-stock',INTC:'intel-ondo-tokenized-stock',
-  QCOM:'qualcomm-ondo-tokenized-stock',ARM:'arm-holdings-plc-ondo-tokenized-stock',COIN:'coinbase-ondo-tokenized-stock',
-  HOOD:'robinhood-markets-ondo-tokenized-stock',UBER:'uber-ondo-tokenized-stock',ABNB:'airbnb-ondo-tokenized-stock',
-  DIS:'disney-ondo-tokenized-stock',JPM:'jpmorgan-chase-ondo-tokenized-stock',V:'visa-ondo-tokenized-stock',
-  MA:'mastercard-ondo-tokenized-stock',COST:'costco-ondo-tokenized-stock',LLY:'eli-lilly-ondo-tokenized-stock',
-  UNH:'unitedhealth-ondo-tokenized-stock',PG:'procter-gamble-ondo-tokenized-stock',KO:'coca-cola-ondo-tokenized-stock',
-  MCD:'mcdonald-s-ondo-tokenized-stock',BA:'boeing-ondo-tokenized-stock',ASML:'asml-holding-nv-ondo-tokenized-stock',
-  NOVO:'novo-nordisk-ondo-tokenized-stock',BABA:'alibaba-ondo-tokenized-stock',BRKB:'berkshire-hathaway-xstock',
-  // ETF tokenisés (approximatif, suit l'indice)
-  ESEE:'spdr-s-p-500-etf-ondo-tokenized-etf',AO00:'ishares-msci-world-etf-tokenized-stock-defichain',WPEA:'ishares-msci-world-etf-tokenized-stock-defichain'
-};
 const COLORS={etf:'#9b8cff',stock:'#e0a458',crypto:'#4f9dde',gold:'#e8c56a',cash:'#7d8694',assurance:'#43d39a',pel:'#cdb78a',pillar:'#7dd3fc',other:'#a1a1aa'};
 const DEFAULT_EXPOSURE={WPEA:{USD:65,EUR:20,OTHER:15},AO00:{USD:65,EUR:20,OTHER:15},ESEE:{USD:100},CW8:{USD:65,EUR:20,OTHER:15},IWDA:{USD:65,EUR:20,OTHER:15},SPY:{USD:100},QQQ:{USD:100}};
 const byId=id=>document.getElementById(id);
@@ -682,9 +664,7 @@ function stooqCurrency(ticker){const t=String(ticker||'').toLowerCase();if(t.inc
 async function stooqPrice(ticker){const url=`https://stooq.com/q/l/?s=${encodeURIComponent(ticker)}&f=sd2t2ohlcv&h&e=csv`,text=await textFetch(url);if(!text)return null;const lines=text.trim().split('\n'),vals=(lines[1]||'').split(','),close=parseFloat(vals[6]);if(close)return{price:close,currency:stooqCurrency(ticker),source:'Stooq'};return null}
 const STOOQ_MAP={'WPEA.PA':'wpea.pa','ESEE.PA':'esee.pa','CW8.PA':'cw8.pa','IWDA.AS':'iwda.as','SPY':'spy.us','QQQ':'qqq.us','DIA':'dia.us','IWM':'iwm.us','^GSPC':'^spx','^IXIC':'^ndq','^DJI':'^dji','^RUT':'^rut','^FCHI':'^fxx','^GDAXI':'^dax','^STOXX50E':'^estoxx50','^FTSE':'^ukx','^SSMI':'^smi','^N225':'^nkx','^HSI':'^hsi','GC=F':'xauusd','SI=F':'xagusd','CL=F':'clusd','NG=F':'ngusd','EURUSD=X':'eurusd','EURCHF=X':'eurchf','USDCHF=X':'usdchf','BTC-EUR':'btc-eur.cc','ETH-EUR':'eth-eur.cc','SOL-EUR':'sol-eur.cc','BNB-EUR':'bnb-eur.cc','XRP-EUR':'xrp-eur.cc','AAPL':'aapl.us','MSFT':'msft.us','NVDA':'nvda.us','AMZN':'amzn.us','GOOGL':'googl.us','META':'meta.us','TSLA':'tsla.us','BRK-B':'brk-b.us','AVGO':'avgo.us','AMD':'amd.us','PLTR':'pltr.us','JPM':'jpm.us','V':'v.us','MC.PA':'mc.pa','BNP.PA':'bnp.pa','AIR.PA':'air.pa','TTE.PA':'tte.pa','OR.PA':'or.pa','RMS.PA':'rms.pa','SAN.PA':'san.pa','ASML.AS':'asml.as','SAP.DE':'sap.de','SIE.DE':'sie.de','NESN.SW':'nesn.ch'};
 async function getPrice(ticker){const mapped=STOOQ_MAP[ticker]||ticker.toLowerCase(),s=await stooqPrice(mapped);if(s)return s;if(STOOQ_MAP[ticker])return null;for(const u of [`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`]){const j=await gFetch(u),m=j?.chart?.result?.[0]?.meta;if(m?.regularMarketPrice)return{price:m.regularMarketPrice,currency:m.currency||'USD',source:'Yahoo',prev:m.chartPreviousClose||m.previousClose||null}}return null}
-async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fxOk=await fetchFx();if(fxOk)n++;const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={bitcoin:'BTC',ethereum:'ETH',solana:'SOL','pax-gold':'XAU'};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});try{const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`).then(r=>r.json());Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';const price=fromE(j[id].eur,cur);S.prices[sym.toLowerCase()]={price,cur,src:'live',at:now};if(sym==='XAU'){S.goldSpot=j[id].eur;S.goldUpdated=now;}n++;}});}catch(e){}let goldNeeded=pos.some(p=>p.type==='gold')||(S.accounts||[]).some(a=>a.type==='gold')||true;if(goldNeeded){let eur=null;try{const gj=await(await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=eur')).json();if(gj?.['pax-gold']?.eur)eur=gj['pax-gold'].eur;}catch(e){}if(eur){S.goldSpot=eur;S.goldUpdated=now;S.prices.xau={price:eur,cur:'EUR',src:'live',at:now};n++}}// ETF + actions via tokens RWA CoinGecko (USD→EUR)
-  const rwaSyms=pos.filter(p=>['etf','stock'].includes(p.type)&&RWA[p.sym]).map(p=>p.sym);
-  if(rwaSyms.length){const rwaOut=await fetchRwaPrices(rwaSyms);n+=Object.keys(rwaOut).length;}S.lastRefresh=now;createSnapshot(false);save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh : ${ago(now)} · auto 4h`;renderSpotBar();renderCurrent();toast(n?`${n} prix mis à jour + snapshot créé`:'Serveurs inaccessibles: prix manuels conservés');}
+async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fxOk=await fetchFx();if(fxOk)n++;const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={bitcoin:'BTC',ethereum:'ETH',solana:'SOL','pax-gold':'XAU'};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});try{const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`).then(r=>r.json());Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';const price=fromE(j[id].eur,cur);S.prices[sym.toLowerCase()]={price,cur,src:'live',at:now};if(sym==='XAU'){S.goldSpot=j[id].eur;S.goldUpdated=now;}n++;}});}catch(e){}let goldNeeded=pos.some(p=>p.type==='gold')||(S.accounts||[]).some(a=>a.type==='gold')||true;if(goldNeeded){let eur=null;try{const gj=await(await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=eur')).json();if(gj?.['pax-gold']?.eur)eur=gj['pax-gold'].eur;}catch(e){}if(eur){S.goldSpot=eur;S.goldUpdated=now;S.prices.xau={price:eur,cur:'EUR',src:'live',at:now};n++}}for(const p of pos.filter(p=>['etf','stock'].includes(p.type))){const info=cat[p.sym]||{},ticker=info.yahoo||p.sym;if(info.source==='manual')continue;const r=await getPrice(ticker);if(r?.price){const eur=toE(r.price,r.currency||p.cur);S.prices[p.sym.toLowerCase()]={price:fromE(eur,p.cur),cur:p.cur,src:'live',at:now};n++}}S.lastRefresh=now;createSnapshot(false);save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh : ${ago(now)} · auto 4h`;renderSpotBar();renderCurrent();toast(n?`${n} prix mis à jour + snapshot créé`:'Serveurs inaccessibles: prix manuels conservés');}
 setInterval(()=>{if(navigator.onLine)doRefresh()},4*60*60*1000);
 // Taux de change toutes les heures (EUR/USD/CHF critique pour Nathan)
 setInterval(()=>{if(navigator.onLine)fetchFx()},60*60*1000);
@@ -776,30 +756,7 @@ async function renderMarket(force=false){
     }catch(e){}
   }
 
-  // ETF + actions : prix auto via tokens RWA (CoinGecko, USD→EUR), fallback manuel
-  const stockItems=sections.flatMap(s=>s.items).filter(it=>it.kind!=='crypto'&&RWA[it.sym]);
-  if(stockItems.length){
-    const syms=stockItems.map(it=>it.sym);
-    const rwaOut=await fetchRwaPrices(syms);
-    stockItems.forEach(it=>{
-      const card=byId(qid(it.sym));if(!card)return;
-      const r=rwaOut[it.sym];
-      if(r){
-        card.querySelector('.mc-price').textContent=fM(r.price,r.cur||'EUR');
-        const ld=card.querySelector('.mc-loading');
-        if(r.change!=null){ld.className='mc-chg '+(r.change>=0?'pos':'neg');ld.textContent=`${r.change>=0?'▲ +':'▼ '}${r.change.toFixed(2)} % (24h)`;}
-        else{ld.className='mc-loading';ld.textContent='En direct (token)';}
-        card.querySelector('.mc-source').textContent='CoinGecko RWA · approx.';
-        card.querySelector('.badge').className='badge b-live';
-        card.querySelector('.badge').textContent='auto';
-      } else {
-        const fb=S.prices[String(it.localSym||it.sym).toLowerCase()];
-        const ld=card.querySelector('.mc-loading');
-        ld.className=fb?'mc-loading':'mc-loading mc-error';
-        ld.textContent=fb?'Dernier connu · clique pour maj':'Clique pour saisir';
-      }
-    });
-  }
+  // ETF + actions : prix manuels (clic sur la carte). Pas d'API, pas de CORS.
 }
 
 function formatMarketPrice(d,it){if(it.kind==='ratio')return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:4}).format(num(d.price));if(it.kind==='index')return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2}).format(num(d.price));return fM(d.price,d.cur==='EUR'?'EUR':d.cur||'USD');}
@@ -974,9 +931,9 @@ function renderSettings(){
       <div class="sources-list">
         <div class="src-row"><span class="badge b-live">AUTO</span><b>Crypto + Or</b><span class="muted">CoinGecko, en direct</span></div>
         <div class="src-row"><span class="badge b-live">AUTO</span><b>Change EUR/USD/CHF</b><span class="muted">CoinGecko, toutes les heures</span></div>
-        <div class="src-row"><span class="badge b-live">AUTO≈</span><b>ETF & actions</b><span class="muted">tokens RWA CoinGecko (approximatif) · sinon manuel</span></div>
+        <div class="src-row"><span class="badge b-manual">MANUEL</span><b>ETF & actions</b><span class="muted">prix saisi à la main (onglet Marchés)</span></div>
       </div>
-      <div class="note">ETF et actions utilisent les versions tokenisées (RWA) sur CoinGecko : automatique mais <b>approximatif</b> (suit l'indice, pas le cours exact de ton ETF). Pour un prix exact, clique sur la valeur dans Marchés et saisis-le à la main.</div>
+      <div class="note">Crypto, or et change sont automatiques. Pour les ETF et actions, clique sur le prix dans l'onglet Marchés ou Portefeuille pour le saisir — c'est rapide et fiable.</div>
     </div>
     <div class="card">
       <div class="card-title">Taux de change</div>
@@ -1002,35 +959,6 @@ function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme
 window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
 applyTheme();updateOnline();byId('refresh-meta').textContent=`Dernier refresh : ${ago(S.lastRefresh)} · auto 4h`;renderSpotBar();if(!(S.snapshots||[]).length){createSnapshot(false)}renderDashboard();
 // Chargement live initial (crypto + or) au démarrage, sans bloquer l'affichage
-async function fetchRwaPrices(symbols){
-  // Récupère les prix tokenisés (actions/ETF) via CoinGecko, en USD, convertit en EUR
-  const ids=[],map={};
-  (symbols||Object.keys(RWA)).forEach(s=>{const id=RWA[s];if(id){ids.push(id);map[id]=s;}});
-  if(!ids.length)return {};
-  const out={};
-  try{
-    // CoinGecko limite l'URL : on découpe par lots de 30
-    for(let i=0;i<ids.length;i+=30){
-      const batch=ids.slice(i,i+30);
-      const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${batch.join(',')}&vs_currencies=usd&include_24hr_change=true`).then(r=>r.json());
-      const now=new Date().toISOString();
-      batch.forEach(id=>{
-        if(j?.[id]?.usd){
-          const sym=map[id];
-          const usd=j[id].usd;
-          const eur=usd*(S.fx.USD||0.92); // USD→EUR
-          const cur=(assetCatalog()[sym]?.cur)||'EUR';
-          const localPrice=fromE(eur,cur);
-          S.prices[sym.toLowerCase()]={price:localPrice,cur,src:'live',at:now};
-          out[sym]={price:localPrice,cur,change:j[id].usd_24h_change};
-        }
-      });
-      if(i+30<ids.length)await new Promise(r=>setTimeout(r,1500));
-    }
-    save();renderSpotBar();
-  }catch(e){console.warn('RWA fetch error',e);}
-  return out;
-}
 async function fetchFx(){
   const now=new Date().toISOString();
   // CoinGecko : on demande BTC en EUR + USD + CHF simultanement
