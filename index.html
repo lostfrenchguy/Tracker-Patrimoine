@@ -461,7 +461,7 @@ function totals(pos=positions()){
   const inc=incomeNet();
   const perf=unrealized+realized+inc;
   const totalInv=riskyInv+accountInvested;
-  return{riskyVal,accountVal,accountInvested,val:riskyVal+accountVal,inv:totalInv,unrealized,realized,income:inc,perf,perfPct:totalInv>0?perf/totalInv*100:0,positions:pos.length,accounts:(S.accounts||[]).length};
+  return{riskyVal,riskyInv,accountVal,accountInvested,val:riskyVal+accountVal,inv:totalInv,unrealized,realized,income:inc,perf,perfPct:totalInv>0?perf/totalInv*100:0,positions:pos.length,accounts:(S.accounts||[]).length};
 }
 function lineItems(){const pos=positions().map(p=>({kind:'position',name:p.name,type:p.type,envelope:p.envelope,cur:p.cur,value:p.val,invested:p.inv,pl:p.pl,sym:p.sym,status:'active'}));const acc=(S.accounts||[]).map(a=>({kind:'account',name:a.name,type:accountRiskType(a),accountType:a.type,envelope:a.envelope,cur:a.cur,value:accountValue(a),invested:accountValue(a),pl:0,sym:'',status:defaultAccountStatus(a)}));return[...pos,...acc];}
 function accountRiskType(a){if(['current','chf','platform','reserve'].includes(a.type))return'cash';if(a.type==='gold')return'gold';if(a.type==='assurance')return'assurance';if(a.type==='pel')return'pel';if(a.type==='pillar')return'pillar';return'other';}
@@ -485,7 +485,23 @@ function applyPeaCtoCryptoProfile(){if(!confirm('Appliquer le profil PEA / CTO /
 function economicCurrencyExposure(items=lineItems()){const out={EUR:0,USD:0,CHF:0,OTHER:0};items.forEach(x=>{const value=num(x.value);const map=(S.settings.economicExposure||DEFAULT_EXPOSURE)[String(x.sym||'').toUpperCase()];if(map){Object.entries(map).forEach(([k,p])=>out[k]=(out[k]||0)+value*num(p)/100);return;}if(x.type==='stock'&&x.cur==='USD'){out.USD+=value;return;}if(x.type==='crypto'){out.OTHER+=value;return;}out[x.cur||'EUR']=(out[x.cur||'EUR']||0)+value;});return out;}
 function envelopeStats(){const T=totals();return ENVELOPES.map(env=>{const items=lineItems().filter(x=>x.envelope===env);const value=items.reduce((s,x)=>s+x.value,0),invested=items.reduce((s,x)=>s+x.invested,0),pl=items.reduce((s,x)=>s+x.pl,0);const curCounts={};items.forEach(x=>curCounts[x.cur]=(curCounts[x.cur]||0)+1);const mainCur=Object.entries(curCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'EUR';return{env,value,invested,pl,plPct:invested>0?pl/invested*100:0,weight:T.val>0?value/T.val*100:0,cur:mainCur,count:items.length};});}
 function riskMetrics(){const items=lineItems(),T=totals(),bt=byType(items),cur=economicCurrencyExposure(items),strategy=strategyItems(),strategyValue=sumItems(strategy),strategyTypes=byType(strategy);const sorted=[...items].sort((a,b)=>b.value-a.value),largest=sorted[0],top3=sorted.slice(0,3).reduce((s,x)=>s+x.value,0),pct=v=>T.val>0?num(v)/T.val*100:0,strategyPct=v=>strategyValue>0?num(v)/strategyValue*100:0,alerts=[];if(largest&&pct(largest.value)>num(S.settings.positionThreshold))alerts.push(`Plus grosse ligne: ${largest.name} pèse ${pct(largest.value).toFixed(1)} % du patrimoine total.`);if(strategyPct(strategyTypes.crypto)>num(S.settings.cryptoThreshold))alerts.push(`Crypto à ${strategyPct(strategyTypes.crypto).toFixed(1)} % du portefeuille piloté, au-dessus du seuil paramétré.`);const reserve=(S.accounts||[]).filter(a=>a.type==='reserve').reduce((s,a)=>s+accountValue(a),0);if(reserve<num(S.settings.securityReserveTarget))alerts.push(`Réserve de sécurité sous la cible: ${fE(reserve)} / ${fE(S.settings.securityReserveTarget)}.`);return{T,bt,cur,largest,top3,top3Pct:pct(top3),alerts,pct,reserve,strategyValue,strategyTypes,strategyPct,passiveValue:sumItems(passiveItems())};}
-function createSnapshot(manual){const pos=positions(),T=totals(pos),types=byType(lineItems()),env={};envelopeStats().forEach(e=>env[e.env]=e.value);S.snapshots=[...(S.snapshots||[]),{id:cid(),date:new Date().toISOString(),manual:!!manual,total:T.val,invested:T.inv,unrealized:T.unrealized,realized:T.realized,income:T.income,performance:T.perf,allocation:types,envelopes:env}].slice(-600);save();if(manual)toast('Snapshot créé');}
+function createSnapshot(manual){
+  const pos=positions(),T=totals(pos),types=byType(lineItems()),env={};
+  envelopeStats().forEach(e=>env[e.env]=e.value);
+  const today=new Date().toISOString().slice(0,10);
+  const snaps=S.snapshots||[];
+  const todayIdx=snaps.findIndex(s=>(s.date||'').slice(0,10)===today);
+  const snap={id:cid(),date:new Date().toISOString(),manual:!!manual,total:T.val,invested:T.inv,unrealized:T.unrealized,realized:T.realized,income:T.income,performance:T.perf,allocation:types,envelopes:env};
+  if(todayIdx>=0){
+    // Un seul snapshot par jour : on remplace celui du jour par le plus récent
+    snaps[todayIdx]=snap;
+  }else{
+    snaps.push(snap);
+  }
+  S.snapshots=snaps.slice(-600);
+  save();
+  if(manual)toast('Snapshot du jour mis à jour');
+}
 function periodStart(p){const d=new Date();if(p==='1m')d.setMonth(d.getMonth()-1);else if(p==='3m')d.setMonth(d.getMonth()-3);else if(p==='6m')d.setMonth(d.getMonth()-6);else if(p==='1a')d.setFullYear(d.getFullYear()-1);else return null;return d;}
 function histRange(){
   if(activePeriod==='custom'){
@@ -537,14 +553,19 @@ function renderDashboardLegacy(){
       <div class="card kpi-card"><div class="kpi-lbl">Reste à investir</div><div class="kpi-val">${fE(plan.remaining)}</div><div class="kpi-note">${plan.mk}</div></div>
       <div class="card kpi-card"><div class="kpi-lbl">Crypto portefeuille piloté</div><div class="kpi-val">${risks.strategyPct(risks.strategyTypes.crypto).toFixed(1)} %</div><div class="kpi-note">Seuil: ${S.settings.cryptoThreshold} %</div></div>
     </div>
-    <div class="g4">
+    <div class="g4" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
   <div class="card kpi-card">
-    <div class="kpi-lbl">Capital investi (ETF · actions · crypto · AV · 3e pilier)</div>
-    <div class="kpi-val">${fE(T.inv)}</div>
-    ${T.accountInvested>0?`<div class="kpi-note">dont ${fE(T.accountInvested)} en comptes investis (AV, 3e pilier...)</div>`:''}
+    <div class="kpi-lbl">Capital marché (ETF · actions · crypto)</div>
+    <div class="kpi-val">${fE(T.riskyInv)}</div>
+    <div class="kpi-note">piloté · plus-value suivie</div>
   </div>
   <div class="card kpi-card">
-    <div class="kpi-lbl">Plus-value latente</div>
+    <div class="kpi-lbl">Comptes investis (AV · 3e pilier · or)</div>
+    <div class="kpi-val">${fE(T.accountInvested)}</div>
+    <div class="kpi-note">valeur déclarée</div>
+  </div>
+  <div class="card kpi-card">
+    <div class="kpi-lbl">Plus-value latente (marché)</div>
     <div class="kpi-val ${T.unrealized>0?'pos':T.unrealized<0?'neg':''}">${fE(T.unrealized)}</div>
   </div>
   <div class="card kpi-card">
