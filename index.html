@@ -477,17 +477,30 @@ function realizedTotals(){const closed={};let total=0;[...S.transactions].sort((
 function realizedByTx(){const closed={},out={};[...S.transactions].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(t=>{if(!['buy','sell'].includes(t.op)||!t.sym)return;const k=[t.sym.toUpperCase(),inferEnvelope(t),t.platform||''].join('|');if(!closed[k])closed[k]={qty:0,costEur:0};const x=closed[k],q=num(t.qty),gross=toE(q*num(t.price),t.cur),fees=toE(feeTotal(t),t.cur);if(t.op==='buy'){x.qty+=q;x.costEur+=gross+fees;return;}const sellQ=Math.min(q,x.qty);if(sellQ<=0){out[t.id]=0;return;}const avg=x.qty>0?x.costEur/x.qty:0,costOut=avg*sellQ,proceeds=(gross-fees)*(sellQ/q);out[t.id]=proceeds-costOut;x.qty-=sellQ;x.costEur-=costOut;});return out;}
 function incomeNet(){return (S.income||[]).reduce((s,i)=>s+toE(num(i.netAmount||num(i.grossAmount)-num(i.tax)),i.cur||'EUR'),0)}
 function totals(pos=positions()){
-  const INVESTED_ACCT_TYPES=new Set(['assurance','pillar','gold','platform']);
+  // passiveVal = AV + PEL + 3e pilier + reserve + comptes courants/CHF (declares, non pilotes)
+  const PASSIVE_ACCT_TYPES=new Set(['assurance','pillar','pel','current','chf','reserve','other']);
+  // cashPilote = cash sur plateformes d'investissement (Coinbase, TR...)
+  const PLATFORM_ACCT_TYPES=new Set(['platform']);
   const accountVal=(S.accounts||[]).reduce((s,a)=>s+accountValue(a),0);
-  const accountInvested=(S.accounts||[]).filter(a=>INVESTED_ACCT_TYPES.has(a.type)).reduce((s,a)=>s+accountValue(a),0);
-  const riskyVal=pos.reduce((s,p)=>s+p.val,0);
-  const riskyInv=pos.reduce((s,p)=>s+p.inv,0);
+  const passiveVal=(S.accounts||[]).filter(a=>PASSIVE_ACCT_TYPES.has(a.type)).reduce((s,a)=>s+accountValue(a),0);
+  const cashPilote=(S.accounts||[]).filter(a=>PLATFORM_ACCT_TYPES.has(a.type)).reduce((s,a)=>s+accountValue(a),0);
+  // Positions de marche (ETF, actions, crypto)
+  const marketVal=pos.reduce((s,p)=>s+p.val,0);
+  const marketInv=pos.reduce((s,p)=>s+p.inv,0);
   const unrealized=pos.reduce((s,p)=>s+p.pl,0);
   const realized=realizedTotals();
   const inc=incomeNet();
   const perf=unrealized+realized+inc;
-  const totalInv=riskyInv+accountInvested;
-  return{riskyVal,riskyInv,accountVal,accountInvested,val:riskyVal+accountVal,inv:totalInv,unrealized,realized,income:inc,perf,perfPct:totalInv>0?perf/totalInv*100:0,positions:pos.length,accounts:(S.accounts||[]).length};
+  const totalVal=marketVal+accountVal;
+  return{
+    marketVal,marketInv,unrealized,realized,income:inc,perf,
+    perfPct:marketInv>0?perf/marketInv*100:0,
+    val:totalVal,accountVal,passiveVal,cashPilote,
+    // compat legacy
+    riskyVal:marketVal,riskyInv:marketInv,
+    inv:marketInv,accountInvested:0,
+    positions:pos.length,accounts:(S.accounts||[]).length
+  };
 }
 function lineItems(){const pos=positions().map(p=>({kind:'position',name:p.name,type:p.type,envelope:p.envelope,cur:p.cur,value:p.val,invested:p.inv,pl:p.pl,sym:p.sym,status:'active'}));const acc=(S.accounts||[]).map(a=>({kind:'account',name:a.name,type:accountRiskType(a),accountType:a.type,envelope:a.envelope,cur:a.cur,value:accountValue(a),invested:accountValue(a),pl:0,sym:'',status:defaultAccountStatus(a)}));return[...pos,...acc];}
 function accountRiskType(a){if(['current','chf','platform','reserve'].includes(a.type))return'cash';if(a.type==='gold')return'gold';if(a.type==='assurance')return'assurance';if(a.type==='pel')return'pel';if(a.type==='pillar')return'pillar';return'other';}
@@ -517,7 +530,7 @@ function createSnapshot(manual){
   const today=new Date().toISOString().slice(0,10);
   const snaps=S.snapshots||[];
   const todayIdx=snaps.findIndex(s=>(s.date||'').slice(0,10)===today);
-  const snap={id:cid(),date:new Date().toISOString(),manual:!!manual,total:T.val,invested:T.inv,unrealized:T.unrealized,realized:T.realized,income:T.income,performance:T.perf,allocation:types,envelopes:env};
+  const snap={id:cid(),date:new Date().toISOString(),manual:!!manual,total:T.val,invested:T.marketInv,marketVal:T.marketVal,passiveVal:T.passiveVal,cashPilote:T.cashPilote,unrealized:T.unrealized,realized:T.realized,income:T.income,performance:T.perf,allocation:types,envelopes:env};
   if(todayIdx>=0){
     // Un seul snapshot par jour : on remplace celui du jour par le plus récent
     snaps[todayIdx]=snap;
@@ -579,9 +592,15 @@ function renderDashboardCockpit(){
       <div class="quick-card"><span>Réserve sécurité</span><b>${fE(risks.reserve)} / ${fE(S.settings.securityReserveTarget)}</b><div class="progress"><span style="width:${reserveProgress}%"></span></div><div class="kpi-note">${reserveProgress.toFixed(0)} % de la cible</div></div>
       <div class="quick-card"><span>Crypto pilotée</span><b>${cryptoPct.toFixed(1)} %</b><div class="progress"><span style="width:${clamp(cryptoPct/Math.max(1,num(S.settings.cryptoThreshold))*100,0,100)}%"></span></div><div class="kpi-note">Seuil : ${S.settings.cryptoThreshold} %</div></div>
     </div>
-    <div class="g4">${[['Capital investi',T.inv],['Latent',T.unrealized],['Réalisé + revenus',T.realized+T.income],['Cash piloté',sumItems(strategyItems().filter(x=>x.type==='cash'))]].map(([l,v])=>`<div class="card kpi-card"><div class="kpi-lbl">${l}</div><div class="kpi-val ${v>0?'pos':v<0?'neg':''}">${fE(v)}</div></div>`).join('')}</div>
-    <div class="card"><div class="toolbar"><div><div class="card-title" style="margin:0">Historique réel — patrimoine global</div><div class="hint">${histRangeLabel()}</div></div><div class="fa"><button class="btn btn-d" onclick="resetHistory()">Vider l'historique</button></div></div><div class="period-bar">${periods.map(([id,l])=>{const p=perfPeriod(id);return`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}${p?` · ${fP(p.pct)}`:''}</button>`}).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">Perso</button></div>${activePeriod==='custom'?`<div class="fa" style="margin:6px 0 10px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données : crée un snapshot maintenant, puis un autre après une évolution.</div>':`<div class="hist-legend"><span class="hl-item"><span class="leg-dot" style="background:#cdb78a"></span> Valeur totale</span><span class="hl-item"><span class="leg-dot" style="background:#4f9dde"></span> Capital investi</span><span class="hl-item"><span class="leg-dot" style="background:#43d39a"></span> Plus-value latente</span></div><div class="chart-wrap"><canvas id="hist-all"></canvas></div>`}</div>
-    <div class="card"><div class="card-title">Évolution par catégorie — ETF · Crypto · Actions</div><div style="font-size:12px;color:var(--muted);margin:-8px 0 12px">Valeur de chaque poche dans le temps. Cliquer sur la légende pour masquer/afficher.</div>${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données.</div>':'<div class="chart-wrap" style="height:260px"><canvas id="hist-categories"></canvas></div>'}</div>
+    <div class="g4">
+      <div class="card kpi-card"><div class="kpi-lbl">Capital injecté marché</div><div class="kpi-val">${fE(T.marketInv)}</div><div class="kpi-note">ETF · actions · crypto · frais inclus</div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Latent (marché)</div><div class="kpi-val ${T.unrealized>=0?'pos':'neg'}">${fE(T.unrealized)}</div><div class="kpi-note">${fP(T.perfPct)} sur capital injecté</div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Réalisé + revenus</div><div class="kpi-val ${(T.realized+T.income)>=0?'pos':'neg'}">${fE(T.realized+T.income)}</div></div>
+      <div class="card kpi-card"><div class="kpi-lbl">Passif déclaré</div><div class="kpi-val">${fE(T.passiveVal)}</div><div class="kpi-note">AV · PEL · 3e pilier · réserve · comptes</div></div>
+    </div>
+    <div class="card"><div class="toolbar"><div><div class="card-title" style="margin:0">Patrimoine global</div><div class="hint">${histRangeLabel()} · total incluant AV, PEL, 3e pilier, réserve</div></div><div class="fa"><button class="btn btn-d" onclick="resetHistory()">Vider l'historique</button></div></div><div class="period-bar">${periods.map(([id,l])=>{const p=perfPeriod(id);return`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}${p?` · ${fP(p.pct)}`:''}</button>`}).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">Perso</button></div>${activePeriod==='custom'?`<div class="fa" style="margin:6px 0 10px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données : crée un snapshot maintenant, puis un autre après une évolution.</div>':'<div class="chart-wrap" style="height:220px"><canvas id="hist-all"></canvas></div>'}</div>
+    <div class="card"><div class="card-title">Portefeuille de marché — capital investi vs valeur</div><div style="font-size:12px;color:var(--muted);margin:-8px 0 12px">ETF · actions · crypto uniquement. Capital injecté (achats réels, frais inclus) vs valeur actuelle vs plus-value latente.</div>${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données.</div>':'<div class="chart-wrap" style="height:220px"><canvas id="hist-market"></canvas></div>'}</div>
+    <div class="card"><div class="card-title">Évolution par catégorie — ETF · Crypto · Actions</div><div style="font-size:12px;color:var(--muted);margin:-8px 0 12px">Valeur de chaque poche au fil du temps. Cliquer sur la légende pour masquer/afficher.</div>${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données.</div>':'<div class="chart-wrap" style="height:220px"><canvas id="hist-categories"></canvas></div>'}</div>
     <div class="g2"><div class="card"><div class="card-title">Allocation — patrimoine global</div>${ae.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-chart"></canvas></div><div class="legend">${ae.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><span class="muted">${(v/at*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucune donnée.</p>'}</div>
     <div class="card"><div class="card-title">Allocation — capital marché</div>${(()=>{const mkt=byType(strategyItems());const me=Object.entries(mkt).filter(([,v])=>v>0);const mt=me.reduce((s,[,v])=>s+v,0)||1;return me.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-market"></canvas></div><div class="legend">${me.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||k}</span><span class="muted">${(v/mt*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucun actif de marché.</p>';})()}</div></div>
     <div class="card"><div class="card-title">Risques</div>${risks.alerts.length?risks.alerts.map(a=>`<div class="alert-row">⚠ <span>${esc(a)}</span></div>`).join(''):'<div class="empty">Aucune alerte selon tes seuils actuels.</div>'}<div class="note">Crypto pilotée ${risks.strategyPct(risks.strategyTypes.crypto).toFixed(1)} % · Top 3 patrimoine ${risks.top3Pct.toFixed(1)} % · USD économique ${risks.pct(risks.cur.USD).toFixed(1)} % · CHF ${risks.pct(risks.cur.CHF).toFixed(1)} %</div></div>
@@ -598,21 +617,36 @@ function drawHistoryChart(){
   const labels=snaps.map(s=>{const d=new Date(s.date);return sameDay?d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});});
   const dark=document.documentElement.getAttribute('data-theme')==='dark',grid=dark?'rgba(36,40,51,1)':'rgba(230,230,223,1)',muted=dark?'#888fa0':'#71757e';
   const pr=snaps.length<15?3:0;
-  // — Graphique 1 : global
+  const opts=(legendDisplay)=>({responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:legendDisplay,position:'bottom',labels:{color:muted,font:{size:11},boxWidth:12,padding:14,usePointStyle:true,pointStyleWidth:10}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fE(c.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:muted,maxTicksLimit:8,font:{size:10}}},y:{grid:{color:grid},ticks:{color:muted,maxTicksLimit:6,font:{size:10},callback:v=>v>=1000?`${Math.round(v/1000)}k`:Math.round(v)}}}});
+  // — Graphique 1 : patrimoine global (total + passif déclaré en fond discret)
+  // invested = marketInv dans les nouveaux snapshots, ou l'ancien champ invested pour les anciens
   const ds1=[
-    {label:'Valeur totale',data:snaps.map(s=>s.total),borderColor:'#cdb78a',backgroundColor:'#cdb78a22',fill:true,tension:.35,pointRadius:pr,borderWidth:2.5},
-    {label:'Capital investi',data:snaps.map(s=>s.invested),borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:2},
-    {label:'Plus-value latente',data:snaps.map(s=>s.unrealized??s.performance),borderColor:'#43d39a',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:2}
-  ];
+    {label:'Patrimoine total',data:snaps.map(s=>s.total),borderColor:'#cdb78a',backgroundColor:'#cdb78a18',fill:true,tension:.35,pointRadius:pr,borderWidth:2.5},
+    {label:'Passif déclaré (AV·PEL·3e pilier·réserve)',data:snaps.map(s=>s.passiveVal??null),borderColor:'#7d8694',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:1.5,borderDash:[4,3]},
+    {label:'Portefeuille de marché',data:snaps.map(s=>s.marketVal??s.total-(s.passiveVal??0)),borderColor:'#9b8cff',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:2},
+  ].filter(d=>d.data.some(v=>v!==null&&v>0));
   const el=byId('hist-all');
   if(el){
     if(!chartAvailable()){chartFallback('hist-all',ds1,labels);}
-    else{charts.push(new Chart(el.getContext('2d'),{type:'line',data:{labels,datasets:ds1},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fE(c.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:muted,maxTicksLimit:8,font:{size:10}}},y:{grid:{color:grid},ticks:{color:muted,maxTicksLimit:6,font:{size:10},callback:v=>`${Math.round(v/1000)}k`}}}}}));}
+    else{charts.push(new Chart(el.getContext('2d'),{type:'line',data:{labels,datasets:ds1},options:opts(true)}));}
   }
-  // — Graphique 2 : par catégorie (ETF / Crypto / Actions)
-  const el2=byId('hist-categories');if(!el2)return;
+  // — Graphique 2 : portefeuille de marché (capital investi marché + valeur + latent)
+  // Pour les anciens snapshots : invested = champ invested (ancien total), on l'affiche quand même
+  const hasMarketInv=snaps.some(s=>s.marketVal!=null||s.invested!=null);
+  const el2=byId('hist-market');
+  if(el2&&hasMarketInv){
+    const ds2=[
+      {label:'Valeur marché (ETF+actions+crypto)',data:snaps.map(s=>s.marketVal??s.total),borderColor:'#9b8cff',backgroundColor:'rgba(155,140,255,0.10)',fill:true,tension:.35,pointRadius:pr,borderWidth:2.5},
+      {label:'Capital injecté (achats - frais)',data:snaps.map(s=>s.invested),borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:2},
+      {label:'Plus-value latente',data:snaps.map(s=>s.unrealized??s.performance),borderColor:'#43d39a',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:2},
+    ].filter(d=>d.data.some(v=>v!=null&&v!==0));
+    if(!chartAvailable()){chartFallback('hist-market',ds2,labels);}
+    else{charts.push(new Chart(el2.getContext('2d'),{type:'line',data:{labels,datasets:ds2},options:opts(true)}));}
+  }
+  // — Graphique 3 : par catégorie (ETF / Crypto / Actions)
+  const el3=byId('hist-categories');if(!el3)return;
   const hasAlloc=snaps.some(s=>s.allocation&&Object.keys(s.allocation).length>0);
-  if(!hasAlloc){el2.parentElement.innerHTML='<div class="chart-empty">Données par catégorie disponibles à partir du prochain snapshot.</div>';return;}
+  if(!hasAlloc){el3.parentElement.innerHTML='<div class="chart-empty">Données par catégorie disponibles à partir du prochain snapshot.</div>';return;}
   const catDefs=[
     {key:'etf',label:'ETF',color:'#9b8cff',bg:'rgba(155,140,255,0.10)'},
     {key:'crypto',label:'Crypto',color:'#4f9dde',bg:'rgba(79,157,222,0.10)'},
@@ -620,10 +654,10 @@ function drawHistoryChart(){
     {key:'gold',label:'Or',color:'#e8c56a',bg:'rgba(232,197,106,0.08)'},
   ];
   const activeCats=catDefs.filter(c=>snaps.some(s=>s.allocation&&(s.allocation[c.key]||0)>0));
-  if(!activeCats.length){el2.parentElement.innerHTML='<div class="chart-empty">Aucune donnée de catégorie dans cet historique.</div>';return;}
-  const ds2=activeCats.map(c=>({label:c.label,data:snaps.map(s=>((s.allocation||{})[c.key])||0),borderColor:c.color,backgroundColor:c.bg,fill:false,tension:.35,pointRadius:pr,pointHoverRadius:5,borderWidth:2}));
-  if(!chartAvailable()){chartFallback('hist-categories',ds2,labels);return;}
-  charts.push(new Chart(el2.getContext('2d'),{type:'line',data:{labels,datasets:ds2},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:true,position:'bottom',labels:{color:muted,font:{size:11},boxWidth:12,padding:16,usePointStyle:true,pointStyleWidth:10}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fE(c.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:muted,maxTicksLimit:8,font:{size:10}}},y:{grid:{color:grid},ticks:{color:muted,maxTicksLimit:6,font:{size:10},callback:v=>v>=1000?`${Math.round(v/1000)}k`:Math.round(v)},beginAtZero:false}}}}));
+  if(!activeCats.length){el3.parentElement.innerHTML='<div class="chart-empty">Aucune donnée de catégorie dans cet historique.</div>';return;}
+  const ds3=activeCats.map(c=>({label:c.label,data:snaps.map(s=>((s.allocation||{})[c.key])||0),borderColor:c.color,backgroundColor:c.bg,fill:false,tension:.35,pointRadius:pr,pointHoverRadius:5,borderWidth:2}));
+  if(!chartAvailable()){chartFallback('hist-categories',ds3,labels);return;}
+  charts.push(new Chart(el3.getContext('2d'),{type:'line',data:{labels,datasets:ds3},options:opts(true)}));
 }
 
 function drawDonut(ae,canvasId='donut-chart'){const el=byId(canvasId);if(!el||!ae.length)return;if(!chartAvailable()){el.parentElement.innerHTML=`<div style="padding:8px 0">${ae.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:${COLORS[k]||'#888'};display:inline-block"></span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><b>${fE(v)}</b></div>`).join('')}</div>`;return;}charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:ae.map(([k])=>TYPES[k]||ACCOUNT_TYPES[k]||k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ae.map(([k])=>COLORS[k]||'#888'),borderWidth:0}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fE(c.parsed)}`}}}}}));}
