@@ -577,11 +577,17 @@ function renderDashboardLegacy(){
     <div class="kpi-val ${T.income>0?'pos':T.income<0?'neg':''}">${fE(T.income)}</div>
   </div>
 </div>
-    <div class="card"><div class="toolbar"><div><div class="card-title" style="margin:0">Historique réel</div><div class="hint">${histRangeLabel()}</div></div><div class="fa"><button class="btn btn-g" onclick="createSnapshot(true);renderCurrent()">+ Snapshot</button><button class="btn btn-d" onclick="resetHistory()">Vider l'historique</button></div></div><div class="period-bar">${periods.map(([id,l])=>`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}</button>`).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">Perso</button></div>${activePeriod==='custom'?`<div class="fa" style="margin:6px 0 10px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données: crée un snapshot maintenant, puis un autre plus tard.</div>':'<div class="chart-wrap"><canvas id="history-chart"></canvas></div>'}</div>
-    <div class="g2"><div class="card"><div class="card-title">Allocation globale</div>${ae.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-chart"></canvas></div><div class="legend">${ae.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><span class="muted">${(v/at*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucune donnée.</p>'}</div>
-    <div class="card"><div class="card-title">Risques</div>${risks.alerts.length?risks.alerts.map(a=>`<div class="alert-row">⚠ <span>${esc(a)}</span></div>`).join(''):'<div class="empty">Aucune alerte selon tes seuils actuels.</div>'}<div class="note">Crypto pilotée ${risks.strategyPct(risks.strategyTypes.crypto).toFixed(1)} % · Top 3 patrimoine ${risks.top3Pct.toFixed(1)} % · USD économique ${risks.pct(risks.cur.USD).toFixed(1)} % · CHF ${risks.pct(risks.cur.CHF).toFixed(1)} %</div></div></div>
+    <div class="card"><div class="toolbar"><div><div class="card-title" style="margin:0">Historique réel</div><div class="hint">${histRangeLabel()}</div></div><div class="fa"><button class="btn btn-d" onclick="resetHistory()">Vider l'historique</button></div></div><div class="period-bar">${periods.map(([id,l])=>`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}</button>`).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">Perso</button></div>${activePeriod==='custom'?`<div class="fa" style="margin:6px 0 10px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données : l\'historique se construit jour après jour. Reviens demain pour voir l\'évolution.</div>':`
+  <div class="hist-charts">
+    <div class="hist-block"><div class="hist-lbl"><span class="leg-dot" style="background:#cdb78a"></span> Valeur totale</div><div class="chart-wrap small"><canvas id="hist-total"></canvas></div></div>
+    <div class="hist-block"><div class="hist-lbl"><span class="leg-dot" style="background:#4f9dde"></span> Capital investi</div><div class="chart-wrap small"><canvas id="hist-invested"></canvas></div></div>
+    <div class="hist-block"><div class="hist-lbl"><span class="leg-dot" style="background:#43d39a"></span> Plus-value latente</div><div class="chart-wrap small"><canvas id="hist-perf"></canvas></div></div>
+  </div>`}</div>
+    <div class="g2"><div class="card"><div class="card-title">Allocation — patrimoine global</div>${ae.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-chart"></canvas></div><div class="legend">${ae.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><span class="muted">${(v/at*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucune donnée.</p>'}</div>
+    <div class="card"><div class="card-title">Allocation — capital marché</div>${(()=>{const mkt=byType(strategyItems());const me=Object.entries(mkt).filter(([,v])=>v>0);const mt=me.reduce((s,[,v])=>s+v,0)||1;return me.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-market"></canvas></div><div class="legend">${me.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||k}</span><span class="muted">${(v/mt*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucun actif de marché (ETF, actions, crypto).</p>';})()}</div></div>
+    <div class="card"><div class="card-title">Risques</div>${risks.alerts.length?risks.alerts.map(a=>`<div class="alert-row">⚠ <span>${esc(a)}</span></div>`).join(''):'<div class="empty">Aucune alerte selon tes seuils actuels.</div>'}<div class="note">Crypto pilotée ${risks.strategyPct(risks.strategyTypes.crypto).toFixed(1)} % · Top 3 patrimoine ${risks.top3Pct.toFixed(1)} % · USD économique ${risks.pct(risks.cur.USD).toFixed(1)} % · CHF ${risks.pct(risks.cur.CHF).toFixed(1)} %</div></div>
   </div>`;
-  drawHistoryChart();drawDonut(ae);
+  drawHistoryChart();drawDonut(ae,'donut-chart');{const mkt=byType(strategyItems());const me=Object.entries(mkt).filter(([,v])=>v>0);drawDonut(me,'donut-market');}
 }
 function renderDashboardCockpit(){
   const pos=positions(),T=totals(pos),up=T.perf>=0,items=lineItems(),bt=byType(items),ae=Object.entries(bt).filter(([,v])=>v>0),at=T.val||1,risks=riskMetrics(),plan=monthlyPlanSummary();
@@ -608,30 +614,31 @@ function renderDashboardCockpit(){
 }
 function renderDashboard(){return renderDashboardLegacy();}
 function drawHistoryChart(){
-  const el=byId('history-chart');if(!el)return;
   const {from,to}=histRange();
-  const snaps=[...(S.snapshots||[])].filter(s=>{const d=new Date(s.date);if(from&&d<from)return false;if(to&&d>to)return false;return true;}).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let snaps=[...(S.snapshots||[])].filter(s=>{const d=new Date(s.date);if(from&&d<from)return false;if(to&&d>to)return false;return true;}).sort((a,b)=>new Date(a.date)-new Date(b.date));
   if(snaps.length<2)return;
+  // Labels : si tous le même jour, afficher l'heure ; sinon date jour/mois
+  const days=new Set(snaps.map(s=>(s.date||'').slice(0,10)));
+  const sameDay=days.size<=1;
+  const labels=snaps.map(s=>{const d=new Date(s.date);return sameDay?d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});});
   const dark=document.documentElement.getAttribute('data-theme')==='dark',grid=dark?'rgba(36,40,51,1)':'rgba(230,230,223,1)',muted=dark?'#888fa0':'#71757e';
-  charts.push(new Chart(el.getContext('2d'),{
-    type:'line',
-    data:{
-      labels:snaps.map(s=>new Date(s.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})),
-      datasets:[
-        {label:'Valeur totale',data:snaps.map(s=>s.total),borderColor:'#cdb78a',backgroundColor:'rgba(205,183,138,.12)',fill:true,tension:.35,pointRadius:2},
-        {label:'Capital investi',data:snaps.map(s=>s.invested),borderColor:'#4f9dde',tension:.35,pointRadius:0},
-        {label:'Plus-value totale',data:snaps.map(s=>s.performance),borderColor:'#43d39a',tension:.35,pointRadius:0}
-      ]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:muted}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fE(c.parsed.y)}`}}},
-      scales:{x:{grid:{display:false},ticks:{color:muted}},y:{grid:{color:grid},ticks:{color:muted,callback:v=>`${Math.round(v/1000)}k`}}}
-    }
-  }));
+  const mk=(canvasId,data,color)=>{
+    const el=byId(canvasId);if(!el)return;
+    charts.push(new Chart(el.getContext('2d'),{
+      type:'line',
+      data:{labels,datasets:[{data,borderColor:color,backgroundColor:color+'22',fill:true,tension:.35,pointRadius:snaps.length<15?3:0,pointBackgroundColor:color}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fE(c.parsed.y)}}},
+        scales:{x:{grid:{display:false},ticks:{color:muted,maxTicksLimit:6,font:{size:10}}},y:{grid:{color:grid},ticks:{color:muted,maxTicksLimit:5,font:{size:10},callback:v=>`${Math.round(v/1000)}k`}}}
+      }
+    }));
+  };
+  mk('hist-total',snaps.map(s=>s.total),'#cdb78a');
+  mk('hist-invested',snaps.map(s=>s.invested),'#4f9dde');
+  mk('hist-perf',snaps.map(s=>s.unrealized??s.performance),'#43d39a');
 }
-function drawDonut(ae){const el=byId('donut-chart');if(!el||!ae.length)return;charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:ae.map(([k])=>TYPES[k]||k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ae.map(([k])=>COLORS[k]||'#888'),borderWidth:0}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fE(c.parsed)}`}}}}}));}
+
+function drawDonut(ae,canvasId='donut-chart'){const el=byId(canvasId);if(!el||!ae.length)return;charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:ae.map(([k])=>TYPES[k]||ACCOUNT_TYPES[k]||k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ae.map(([k])=>COLORS[k]||'#888'),borderWidth:0}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fE(c.parsed)}`}}}}}));}
 function renderPortfolio(){
   let pos=positions();
   const T=totals(pos);
