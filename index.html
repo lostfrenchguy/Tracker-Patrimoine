@@ -608,42 +608,134 @@ function renderDashboardCockpit(){
   drawHistoryChart();drawDonut(ae,'donut-chart');{const mkt=byType(strategyItems());const me=Object.entries(mkt).filter(([,v])=>v>0);drawDonut(me,'donut-market');}
 }
 function renderDashboard(){return renderDashboardCockpit();}
+
+// Reconstruit le capital injecté jour par jour depuis les transactions réelles
+// Retourne [{date: 'YYYY-MM-DD', cumul: €}] trié chronologiquement
+// Inclus uniquement les actifs de marché (type ETF, actions, crypto, gold physique via transactions)
+function capitalInjecteParDate(){
+  const MARKET_TYPES=new Set(['etf','stock','crypto','gold']);
+  const txs=[...S.transactions]
+    .filter(t=>['buy','sell'].includes(t.op)&&t.sym&&t.date)
+    .sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  if(!txs.length)return[];
+  // Cumul des flux nets (achats positifs, ventes récupèrent le capital)
+  // On garde un suivi position par position pour ventes FIFO
+  const positions={};
+  const events=[];
+  txs.forEach(t=>{
+    const type=t.type||(assetCatalog()[String(t.sym||'').toUpperCase()]?.type)||'other';
+    if(!MARKET_TYPES.has(type))return;
+    const k=[String(t.sym||'').toUpperCase(),t.envelope||'',t.platform||''].join('|');
+    if(!positions[k])positions[k]={qty:0,cost:0};
+    const p=positions[k];
+    const gross=toE(num(t.qty)*num(t.price),t.cur);
+    const fees=toE(feeTotal(t),t.cur);
+    const date=(t.date||'').slice(0,10);
+    if(t.op==='buy'){
+      const inject=gross+fees;
+      p.qty+=num(t.qty);p.cost+=inject;
+      events.push({date,delta:+inject});
+    }else if(t.op==='sell'){
+      // Vente : on rembourse le coût moyen (pas les gains) → capital injecté diminue
+      const sq=Math.min(num(t.qty),p.qty);
+      if(sq<=0)return;
+      const avg=p.qty>0?p.cost/p.qty:0;
+      const costReturned=avg*sq;
+      p.qty-=sq;p.cost-=costReturned;
+      events.push({date,delta:-costReturned});
+    }
+  });
+  if(!events.length)return[];
+  // Agréger par date
+  const byDate={};
+  events.forEach(({date,delta})=>byDate[date]=(byDate[date]||0)+delta);
+  const dates=Object.keys(byDate).sort();
+  let cumul=0;
+  return dates.map(date=>{cumul+=byDate[date];return{date,cumul};});
+}
 function drawHistoryChart(){
   const {from,to}=histRange();
   let snaps=[...(S.snapshots||[])].filter(s=>{const d=new Date(s.date);if(from&&d<from)return false;if(to&&d>to)return false;return true;}).sort((a,b)=>new Date(a.date)-new Date(b.date));
   if(snaps.length<2)return;
-  const days=new Set(snaps.map(s=>(s.date||'').slice(0,10)));
-  const sameDay=days.size<=1;
-  const labels=snaps.map(s=>{const d=new Date(s.date);return sameDay?d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});});
   const dark=document.documentElement.getAttribute('data-theme')==='dark',grid=dark?'rgba(36,40,51,1)':'rgba(230,230,223,1)',muted=dark?'#888fa0':'#71757e';
   const pr=snaps.length<15?3:0;
-  const opts=(legendDisplay)=>({responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:legendDisplay,position:'bottom',labels:{color:muted,font:{size:11},boxWidth:12,padding:14,usePointStyle:true,pointStyleWidth:10}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fE(c.parsed.y)}`}}},scales:{x:{grid:{display:false},ticks:{color:muted,maxTicksLimit:8,font:{size:10}}},y:{grid:{color:grid},ticks:{color:muted,maxTicksLimit:6,font:{size:10},callback:v=>v>=1000?`${Math.round(v/1000)}k`:Math.round(v)}}}});
-  // — Graphique 1 : patrimoine global (total + passif déclaré en fond discret)
-  // invested = marketInv dans les nouveaux snapshots, ou l'ancien champ invested pour les anciens
-  const ds1=[
-    {label:'Patrimoine total',data:snaps.map(s=>s.total),borderColor:'#cdb78a',backgroundColor:'#cdb78a18',fill:true,tension:.35,pointRadius:pr,borderWidth:2.5},
-    {label:'Passif déclaré (AV·PEL·3e pilier·réserve)',data:snaps.map(s=>s.passiveVal??null),borderColor:'#7d8694',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:1.5,borderDash:[4,3]},
-    {label:'Portefeuille de marché',data:snaps.map(s=>s.marketVal??s.total-(s.passiveVal??0)),borderColor:'#9b8cff',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:2},
-  ].filter(d=>d.data.some(v=>v!==null&&v>0));
-  const el=byId('hist-all');
-  if(el){
-    if(!chartAvailable()){chartFallback('hist-all',ds1,labels);}
-    else{charts.push(new Chart(el.getContext('2d'),{type:'line',data:{labels,datasets:ds1},options:opts(true)}));}
+
+  // Labels snapshots (dates ou heures si même jour)
+  const days=new Set(snaps.map(s=>(s.date||'').slice(0,10)));
+  const sameDay=days.size<=1;
+  const snapLabels=snaps.map(s=>{const d=new Date(s.date);return sameDay?d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});});
+
+  // Capital injecté recalculé depuis les transactions (avec filtre période)
+  let capData=capitalInjecteParDate();
+  if(from)capData=capData.filter(c=>new Date(c.date)>=from);
+  if(to)capData=capData.filter(c=>new Date(c.date)<=to);
+
+  const baseOpts=(legendDisplay)=>({
+    responsive:true,maintainAspectRatio:false,
+    interaction:{intersect:false,mode:'index'},
+    plugins:{
+      legend:{display:legendDisplay,position:'bottom',labels:{color:muted,font:{size:11},boxWidth:12,padding:14,usePointStyle:true,pointStyleWidth:10}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fE(c.parsed.y)}`}}
+    },
+    scales:{
+      x:{grid:{display:false},ticks:{color:muted,maxTicksLimit:8,font:{size:10}}},
+      y:{grid:{color:grid},ticks:{color:muted,maxTicksLimit:6,font:{size:10},callback:v=>v>=1000?`${Math.round(v/1000)}k`:Math.round(v)}}
+    }
+  });
+
+  // ── Graphique 1 : Patrimoine global (snapshots) ──────────────────────────
+  const el1=byId('hist-all');
+  if(el1&&snaps.length>=2){
+    const ds1=[
+      {label:'Patrimoine total',data:snaps.map(s=>s.total),borderColor:'#cdb78a',backgroundColor:'#cdb78a18',fill:true,tension:.4,pointRadius:pr,borderWidth:2.5},
+      {label:'Passif déclaré (AV·PEL·3e pilier·réserve)',data:snaps.map(s=>s.passiveVal??null),borderColor:'#7d8694',backgroundColor:'transparent',fill:false,tension:.4,pointRadius:pr,borderWidth:1.5,borderDash:[4,3]},
+      {label:'Portefeuille marché',data:snaps.map(s=>s.marketVal??s.total-(s.passiveVal??0)),borderColor:'#9b8cff',backgroundColor:'transparent',fill:false,tension:.4,pointRadius:pr,borderWidth:2},
+    ].filter(d=>d.data.some(v=>v!=null&&v>0));
+    if(!chartAvailable())chartFallback('hist-all',ds1,snapLabels);
+    else charts.push(new Chart(el1.getContext('2d'),{type:'line',data:{labels:snapLabels,datasets:ds1},options:baseOpts(true)}));
   }
-  // — Graphique 2 : portefeuille de marché (capital investi marché + valeur + latent)
-  // Pour les anciens snapshots : invested = champ invested (ancien total), on l'affiche quand même
-  const hasMarketInv=snaps.some(s=>s.marketVal!=null||s.invested!=null);
+
+  // ── Graphique 2 : Portefeuille marché — capital exact (tx) vs valeur (snapshots) ──
   const el2=byId('hist-market');
-  if(el2&&hasMarketInv){
-    const ds2=[
-      {label:'Valeur marché (ETF+actions+crypto)',data:snaps.map(s=>s.marketVal??s.total),borderColor:'#9b8cff',backgroundColor:'rgba(155,140,255,0.10)',fill:true,tension:.35,pointRadius:pr,borderWidth:2.5},
-      {label:'Capital injecté (achats - frais)',data:snaps.map(s=>s.invested),borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:2},
-      {label:'Plus-value latente',data:snaps.map(s=>s.unrealized??s.performance),borderColor:'#43d39a',backgroundColor:'transparent',fill:false,tension:.35,pointRadius:pr,borderWidth:2},
-    ].filter(d=>d.data.some(v=>v!=null&&v!==0));
-    if(!chartAvailable()){chartFallback('hist-market',ds2,labels);}
-    else{charts.push(new Chart(el2.getContext('2d'),{type:'line',data:{labels,datasets:ds2},options:opts(true)}));}
+  if(el2){
+    // Valeur marché depuis snapshots sur l'axe X des snapshots
+    const marketDs={label:'Valeur marché (snapshots)',data:snaps.map(s=>s.marketVal??null),borderColor:'#9b8cff',backgroundColor:'rgba(155,140,255,0.10)',fill:true,tension:.4,pointRadius:pr,borderWidth:2.5};
+
+    if(capData.length>=2){
+      // Deux séries sur des X différents → dataset séparé avec son propre xAxisID
+      // On fusionne les deux sets de dates en un seul axe X chronologique
+      const allDates=Array.from(new Set([
+        ...snaps.map(s=>(s.date||'').slice(0,10)),
+        ...capData.map(c=>c.date)
+      ])).sort();
+      const fmt=d=>new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+      const mergedLabels=allDates.map(fmt);
+
+      // Map date→valeur pour chaque série
+      const snapMap=Object.fromEntries(snaps.map(s=>[(s.date||'').slice(0,10),s.marketVal??null]));
+      const capMap=Object.fromEntries(capData.map(c=>[c.date,c.cumul]));
+
+      // Capital injecté : stepped before (escalier), tension 0
+      // Pour que l'escalier soit propre : on propage la dernière valeur connue
+      let lastCap=null;
+      const capStepped=allDates.map(d=>{if(capMap[d]!=null)lastCap=capMap[d];return lastCap;});
+      const marketValues=allDates.map(d=>snapMap[d]??null);
+
+      const ds2=[
+        {label:'Valeur marché (ETF+actions+crypto)',data:marketValues,borderColor:'#9b8cff',backgroundColor:'rgba(155,140,255,0.10)',fill:true,tension:.4,pointRadius:0,borderWidth:2.5,spanGaps:true},
+        {label:'Capital injecté (tx réelles)',data:capStepped,borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,stepped:'before',tension:0,pointRadius:0,borderWidth:2},
+        {label:'Plus-value latente',data:allDates.map(d=>{const v=snapMap[d];let c=null;let last=null;for(const dd of allDates){if(capMap[dd]!=null)last=capMap[dd];if(dd===d)break;}c=last;return(v!=null&&c!=null)?v-c:null;}),borderColor:'#43d39a',backgroundColor:'transparent',fill:false,tension:.4,pointRadius:0,borderWidth:1.5,borderDash:[3,2],spanGaps:false},
+      ];
+      if(!chartAvailable())chartFallback('hist-market',ds2,mergedLabels);
+      else charts.push(new Chart(el2.getContext('2d'),{type:'line',data:{labels:mergedLabels,datasets:ds2},options:baseOpts(true)}));
+    } else {
+      // Pas encore de transactions → juste valeur marché snapshot
+      if(!chartAvailable())chartFallback('hist-market',[marketDs],snapLabels);
+      else charts.push(new Chart(el2.getContext('2d'),{type:'line',data:{labels:snapLabels,datasets:[marketDs]},options:baseOpts(false)}));
+    }
   }
-  // — Graphique 3 : par catégorie (ETF / Crypto / Actions)
+
+  // ── Graphique 3 : Par catégorie ───────────────────────────────────────────
   const el3=byId('hist-categories');if(!el3)return;
   const hasAlloc=snaps.some(s=>s.allocation&&Object.keys(s.allocation).length>0);
   if(!hasAlloc){el3.parentElement.innerHTML='<div class="chart-empty">Données par catégorie disponibles à partir du prochain snapshot.</div>';return;}
@@ -655,9 +747,9 @@ function drawHistoryChart(){
   ];
   const activeCats=catDefs.filter(c=>snaps.some(s=>s.allocation&&(s.allocation[c.key]||0)>0));
   if(!activeCats.length){el3.parentElement.innerHTML='<div class="chart-empty">Aucune donnée de catégorie dans cet historique.</div>';return;}
-  const ds3=activeCats.map(c=>({label:c.label,data:snaps.map(s=>((s.allocation||{})[c.key])||0),borderColor:c.color,backgroundColor:c.bg,fill:false,tension:.35,pointRadius:pr,pointHoverRadius:5,borderWidth:2}));
-  if(!chartAvailable()){chartFallback('hist-categories',ds3,labels);return;}
-  charts.push(new Chart(el3.getContext('2d'),{type:'line',data:{labels,datasets:ds3},options:opts(true)}));
+  const ds3=activeCats.map(c=>({label:c.label,data:snaps.map(s=>((s.allocation||{})[c.key])||0),borderColor:c.color,backgroundColor:c.bg,fill:false,tension:.4,pointRadius:pr,pointHoverRadius:5,borderWidth:2}));
+  if(!chartAvailable()){chartFallback('hist-categories',ds3,snapLabels);return;}
+  charts.push(new Chart(el3.getContext('2d'),{type:'line',data:{labels:snapLabels,datasets:ds3},options:baseOpts(true)}));
 }
 
 function drawDonut(ae,canvasId='donut-chart'){const el=byId(canvasId);if(!el||!ae.length)return;if(!chartAvailable()){el.parentElement.innerHTML=`<div style="padding:8px 0">${ae.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:${COLORS[k]||'#888'};display:inline-block"></span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><b>${fE(v)}</b></div>`).join('')}</div>`;return;}charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:ae.map(([k])=>TYPES[k]||ACCOUNT_TYPES[k]||k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ae.map(([k])=>COLORS[k]||'#888'),borderWidth:0}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fE(c.parsed)}`}}}}}));}
@@ -1163,8 +1255,50 @@ function renderSettings(){
       </div>
       <div class="note">1 USD = ${S.fx.USD?S.fx.USD.toFixed(4):'—'} € · 1 CHF = ${S.fx.CHF?S.fx.CHF.toFixed(4):'—'} € · Or: ${S.goldSpot?fE(S.goldSpot):'—'}/oz · Mis à jour: ${S.fxUpdated?ago(S.fxUpdated):'jamais (actualiser)'}</div>
     </div>
+    ${renderSnapshotManager()}
   </div>`;
 }
+
+function renderSnapshotManager(){
+  const snaps=[...(S.snapshots||[])].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(!snaps.length)return`<div class="card"><div class="card-title">Snapshots</div><p class="muted">Aucun snapshot enregistré.</p></div>`;
+  const totalSize=JSON.stringify(snaps).length;
+  const rows=snaps.map((s,i)=>{
+    const d=new Date(s.date);
+    const dateStr=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const timeStr=d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const tag=s.manual?'<span class="badge b-live" style="font-size:10px">manuel</span>':'<span class="badge b-manual" style="font-size:10px">auto</span>';
+    const total=s.total!=null?fE(s.total):'—';
+    const invested=s.invested!=null?fE(s.invested):'—';
+    const latent=s.unrealized!=null?`<span class="${(s.unrealized||0)>=0?'pos':'neg'}">${fE(s.unrealized)}</span>`:'—';
+    return`<tr>
+      <td class="l">${dateStr} <span class="muted" style="font-size:11px">${timeStr}</span></td>
+      <td class="l">${tag}</td>
+      <td>${total}</td>
+      <td>${invested}</td>
+      <td>${latent}</td>
+      <td><button class="icon-btn" style="color:var(--red)" onclick="deleteSnapshot('${s.id}')" title="Supprimer">×</button></td>
+    </tr>`;
+  }).join('');
+  return`<div class="card">
+    <div class="toolbar">
+      <div class="card-title" style="margin:0">Snapshots (${snaps.length})</div>
+      <div class="fa">
+        <span class="muted" style="font-size:12px">${(totalSize/1024).toFixed(1)} Ko · max 600</span>
+        <button class="btn btn-g" onclick="createSnapshot(true);renderSettings()">Créer maintenant</button>
+        <button class="btn btn-d" onclick="if(confirm('Vider tous les snapshots ?')){S.snapshots=[];save();renderSettings()}">Tout vider</button>
+        <button class="btn btn-g" onclick="exportSnapshots()">Exporter JSON</button>
+      </div>
+    </div>
+    <div class="note" style="margin-bottom:12px">Un snapshot par jour (auto au démarrage + manuel). Le capital investi est recalculé depuis tes transactions — seule la valeur totale du patrimoine est stockée ici.</div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th class="l">Date</th><th class="l">Type</th><th>Patrimoine total</th><th>Capital injecté</th><th>Latent</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+function deleteSnapshot(id){if(!confirm('Supprimer ce snapshot ?'))return;S.snapshots=(S.snapshots||[]).filter(s=>s.id!==id);save();renderSettings();}
+function exportSnapshots(){const payload={meta:{app:'Tracker Patrimoine',exportedAt:new Date().toISOString(),count:(S.snapshots||[]).length},snapshots:S.snapshots||[]};download(`snapshots_${today()}.json`,JSON.stringify(payload,null,2),'application/json');toast('Snapshots exportés');}
 
 function exportBackup(){const payload={meta:{app:'Tracker Patrimoine',schemaVersion:6,exportedAt:new Date().toISOString()},data:S};download(`patrimoine_backup_${today()}.json`,JSON.stringify(payload,null,2),'application/json');toast('Backup téléchargé');}
 function validateBackup(raw){const data=raw?.data||raw;if(!data||typeof data!=='object')return null;if(!Array.isArray(data.transactions)&&!Array.isArray(data.accounts)&&!Array.isArray(data.snapshots))return null;return migrate(data);}
