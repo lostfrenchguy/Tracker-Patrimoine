@@ -459,7 +459,18 @@ function toE(v,c){return num(v)*(S.fx?.[c]||1)}
 function fromE(v,c){return num(v)/(S.fx?.[c]||1)}
 function feeTotal(t){return num(t.fees)+num(t.buyFees)+num(t.sellFees)+num(t.fxFees)+num(t.spreadFees)+num(t.brokerFees)+num(t.custodyFees)}
 function assetCatalog(){const out={...KNOWN};for(const a of S.customAssets||[]){if(a.ticker)out[a.ticker.toUpperCase()]={name:a.name||a.ticker,type:a.type||'other',cur:a.cur||'EUR',isin:a.isin,source:a.priceSource||'manual',platform:a.platform||'',comment:a.comment||''};}return out;}
-function priceFor(sym,fallback=0,cur='EUR'){const p=S.prices[String(sym||'').toLowerCase()];return p&&num(p.price)>0?num(p.price):fallback}
+// Retourne le statut d'un prix : 'live' <24h, 'recent' <7j, 'stale' >=7j, 'missing' absent
+const PRICE_LIVE_MS=864e5,PRICE_STALE_MS=7*864e5;
+function priceStatus(sym){
+  const pd=S.prices[String(sym||'').toLowerCase()];
+  if(!pd||!num(pd.price))return{price:null,status:'missing',label:'Prix manquant',src:'—',at:null};
+  const age=pd.at?Date.now()-new Date(pd.at).getTime():Infinity;
+  if(age<PRICE_LIVE_MS)return{price:num(pd.price),status:'live',label:'Prix live',src:pd.src||'live',at:pd.at,cur:pd.cur};
+  if(age<PRICE_STALE_MS)return{price:num(pd.price),status:'recent',label:'Prix récent',src:pd.src||'manuel',at:pd.at,cur:pd.cur};
+  return{price:num(pd.price),status:'stale',label:'Prix daté (>7j)',src:pd.src||'manuel',at:pd.at,cur:pd.cur};
+}
+// Rétrocompat : utilisé dans quelques endroits qui veulent juste le nombre
+function priceFor(sym,fallback=null,cur='EUR'){const s=priceStatus(sym);return s.price??fallback}
 function positions(){
   const g={};
   [...S.transactions].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(t=>{
@@ -471,7 +482,23 @@ function positions(){
     if(t.op==='buy'){x.qty+=q;x.boughtQty+=q;x.costEur+=gross+fees;x.buyCostEur+=gross+fees;}
     if(t.op==='sell'){const sellQ=Math.min(q,x.qty);if(sellQ<=0)return;const avg=x.qty>0?x.costEur/x.qty:0;const costOut=avg*sellQ;const proceeds=(gross-fees)*(sellQ/q);x.qty-=sellQ;x.costEur-=costOut;x.soldQty+=sellQ;x.salesEur+=proceeds;x.realized+=proceeds-costOut;}
   });
-  return Object.values(g).filter(x=>x.qty>1e-10).map(x=>{const avgEur=x.qty>0?x.costEur/x.qty:0;const avg=fromE(avgEur,x.cur);const pd=S.prices[x.sym.toLowerCase()];const priceCur=pd?.cur||x.cur;const p=priceFor(x.sym,fromE(avgEur,priceCur),priceCur);const val=toE(p*x.qty,priceCur);const inv=x.costEur;const pl=val-inv;return{...x,avg,curP:p,priceCur,src:pd?.src||'manuel',srcAt:pd?.at||null,inv,val,pl,plPct:inv>0?pl/inv*100:0};});
+  return Object.values(g).filter(x=>x.qty>1e-10).map(x=>{
+    const avgEur=x.qty>0?x.costEur/x.qty:0;
+    const avg=fromE(avgEur,x.cur);
+    const ps=priceStatus(x.sym);
+    const priceCur=ps.cur||S.prices[x.sym.toLowerCase()]?.cur||x.cur;
+    // Si prix manquant : val=null, pl=null — on ne ment pas avec le PRU
+    const curP=ps.price;
+    const val=curP!=null?toE(curP*x.qty,priceCur):null;
+    const inv=x.costEur;
+    const pl=val!=null?val-inv:null;
+    return{...x,avg,curP,priceCur,priceStatus:ps.status,src:ps.src,srcAt:ps.at,inv,
+      val:val??inv,   // fallback inv pour les totaux seulement (marqué stalePRU)
+      valReal:val,    // null si prix manquant — utilisé pour les graphiques
+      pl:pl??0,plPct:pl!=null&&inv>0?pl/inv*100:null,
+      stalePRU:val==null  // flag : valeur = PRU, pas un prix marché
+    };
+  });
 }
 function accountValue(a){return toE(num(a.amount),a.cur)}
 function realizedTotals(){const closed={};let total=0;[...S.transactions].sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(t=>{if(!['buy','sell'].includes(t.op)||!t.sym)return;const k=[t.sym.toUpperCase(),inferEnvelope(t),t.platform||''].join('|');if(!closed[k])closed[k]={qty:0,costEur:0};const x=closed[k],q=num(t.qty),gross=toE(q*num(t.price),t.cur),fees=toE(feeTotal(t),t.cur);if(t.op==='buy'){x.qty+=q;x.costEur+=gross+fees;}else{const sellQ=Math.min(q,x.qty);if(sellQ<=0)return;const avg=x.qty>0?x.costEur/x.qty:0;const costOut=avg*sellQ;const proceeds=(gross-fees)*(sellQ/q);total+=proceeds-costOut;x.qty-=sellQ;x.costEur-=costOut;}});return total;}
@@ -486,17 +513,25 @@ function totals(pos=positions()){
   const passiveVal=(S.accounts||[]).filter(a=>PASSIVE_ACCT_TYPES.has(a.type)).reduce((s,a)=>s+accountValue(a),0);
   const cashPilote=(S.accounts||[]).filter(a=>PLATFORM_ACCT_TYPES.has(a.type)).reduce((s,a)=>s+accountValue(a),0);
   // Positions de marche (ETF, actions, crypto)
-  const marketVal=pos.reduce((s,p)=>s+p.val,0);
+  // marketVal : seulement les positions avec un vrai prix (pas PRU)
+  const marketVal=pos.reduce((s,p)=>s+(p.valReal??0),0);
+  // marketValGross : inclut les positions sans prix (au PRU) pour le patrimoine total affiché
+  const marketValGross=pos.reduce((s,p)=>s+p.val,0);
   const marketInv=pos.reduce((s,p)=>s+p.inv,0);
   const unrealized=pos.reduce((s,p)=>s+p.pl,0);
+  // Nombre de positions sans prix fiable
+  const missingPrices=pos.filter(p=>p.stalePRU).length;
+  const totalPositions=pos.length;
   const realized=realizedTotals();
   const inc=incomeNet();
   const perf=unrealized+realized+inc;
   const totalVal=marketVal+accountVal;
+  const totalVal2=marketValGross+accountVal;
   return{
-    marketVal,marketInv,unrealized,realized,income:inc,perf,
+    marketVal,marketValGross,marketInv,unrealized,realized,income:inc,perf,
     perfPct:marketInv>0?perf/marketInv*100:0,
-    val:totalVal,accountVal,passiveVal,cashPilote,
+    val:totalVal2,accountVal,passiveVal,cashPilote,
+    missingPrices,totalPositions,
     // compat legacy
     riskyVal:marketVal,riskyInv:marketInv,
     inv:marketInv,accountInvested:0,
@@ -531,7 +566,21 @@ function createSnapshot(manual){
   const today=new Date().toISOString().slice(0,10);
   const snaps=S.snapshots||[];
   const todayIdx=snaps.findIndex(s=>(s.date||'').slice(0,10)===today);
-  const snap={id:cid(),date:new Date().toISOString(),manual:!!manual,total:T.val,invested:T.marketInv,marketVal:T.marketVal,passiveVal:T.passiveVal,cashPilote:T.cashPilote,unrealized:T.unrealized,realized:T.realized,income:T.income,performance:T.perf,allocation:types,envelopes:env};
+  // Qualité des prix au moment du snapshot
+  const priceQuality=pos.reduce((m,p)=>{m[p.sym]={status:p.priceStatus,at:p.srcAt,src:p.src};return m;},{});
+  const pricedPositions=pos.filter(p=>!p.stalePRU).length;
+  const snap={id:cid(),date:new Date().toISOString(),manual:!!manual,
+    total:T.val,invested:T.marketInv,
+    marketVal:T.marketVal,        // valeur avec vrais prix seulement
+    marketValGross:T.marketValGross, // valeur incluant PRU pour positions sans prix
+    passiveVal:T.passiveVal,cashPilote:T.cashPilote,
+    unrealized:T.unrealized,realized:T.realized,income:T.income,performance:T.perf,
+    allocation:types,envelopes:env,
+    priceQuality,
+    pricedPositions,totalPositions:pos.length,
+    // flag fiabilité : 'full' tous pricés, 'partial' certains au PRU, 'none' aucun
+    reliability:pos.length===0?'none':pricedPositions===pos.length?'full':pricedPositions>0?'partial':'none'
+  };
   if(todayIdx>=0){
     // Un seul snapshot par jour : on remplace celui du jour par le plus récent
     snaps[todayIdx]=snap;
@@ -583,7 +632,7 @@ function renderDashboardCockpit(){
   const periods=[['1m','1 M'],['3m','3 M'],['6m','6 M'],['1a','1 A'],['tout','Tout']];
   const planPct=plan.planned?clamp(plan.actual/plan.planned*100,0,100):0,cryptoPct=risks.strategyPct(risks.strategyTypes.crypto),reserveProgress=reservePct(risks);
   byId('content').innerHTML=`<div class="stack">
-    <div class="card hero"><div class="hero-top"><div><div class="hero-label">Patrimoine total</div><div class="hero-val">${fE(T.val)}</div><div class="pill ${up?'up':'dn'}">${up?'▲':'▼'} ${fE(T.perf)} · ${fP(T.perfPct)}</div></div><div class="hero-stats"><div class="hs-item"><span class="hs-lbl">Portefeuille piloté</span><span class="hs-val">${fE(risks.strategyValue)}</span></div><div class="hs-item"><span class="hs-lbl">Épargne gelée</span><span class="hs-val">${fE(risks.passiveValue)}</span></div><div class="hs-item"><span class="hs-lbl">Réserve sécurité</span><span class="hs-val">${fE(risks.reserve)}</span></div><div class="hs-item"><span class="hs-lbl">Score plan</span><span class="hs-val">${health.score}/100</span></div></div></div><div class="fa" style="margin-top:16px"><button class="btn btn-p" onclick="goTab('dca')">Plan mensuel</button><button class="btn btn-g" onclick="goTab('allocation')">Allocation cible</button><button class="btn btn-g" onclick="createSnapshot(true);renderCurrent()">Snapshot maintenant</button></div></div>
+    <div class="card hero"><div class="hero-top"><div><div class="hero-label">Patrimoine total</div><div class="hero-val">${fE(T.val)}</div><div class="pill ${up?'up':'dn'}">${up?'▲':'▼'} ${fE(T.perf)} · ${fP(T.perfPct)}</div>${T.missingPrices>0?`<div style="font-size:10px;color:var(--amber,#e0a458);margin-top:3px">⚠ ${T.missingPrices} prix manquant${T.missingPrices>1?'s':''} — latent sous-estimé</div>`:''}</div><div class="hero-stats"><div class="hs-item"><span class="hs-lbl">Portefeuille piloté</span><span class="hs-val">${fE(risks.strategyValue)}</span></div><div class="hs-item"><span class="hs-lbl">Épargne gelée</span><span class="hs-val">${fE(risks.passiveValue)}</span></div><div class="hs-item"><span class="hs-lbl">Réserve sécurité</span><span class="hs-val">${fE(risks.reserve)}</span></div><div class="hs-item"><span class="hs-lbl">Score plan</span><span class="hs-val">${health.score}/100</span></div></div></div><div class="fa" style="margin-top:16px"><button class="btn btn-p" onclick="goTab('dca')">Plan mensuel</button><button class="btn btn-g" onclick="goTab('allocation')">Allocation cible</button><button class="btn btn-g" onclick="createSnapshot(true);renderCurrent()">Snapshot maintenant</button></div></div>
     <div class="decision-grid">
       <div class="decision-card"><div class="decision-head"><div><div class="decision-label">Cockpit décision</div><div class="decision-title">${esc(decision.title)}</div><div class="decision-sub">${esc(decision.detail)} Basé sur le portefeuille piloté : PEA, CTO, crypto et cash disponible. Assurance-vie, 3e pilier et PEL restent suivis mais hors recommandations.</div></div><div class="score-badge">${health.score}</div></div>${actionListHtml(actions)}</div>
       <div class="decision-card"><div class="decision-head"><div><div class="decision-label">Allocation pilotée</div><div class="decision-title" style="font-size:23px">${fE(risks.strategyValue)}</div><div class="decision-sub">Barre pleine = actuel. Voile bleu = cible. La recommandation cible la poche la plus en retard.</div></div><span class="badge ${health.score>=70?'b-live':'b-manual'}">${esc(health.label)}</span></div>${allocationBarsHtml(rows)}</div>
@@ -599,20 +648,50 @@ function renderDashboardCockpit(){
       <div class="card kpi-card"><div class="kpi-lbl">Réalisé + revenus</div><div class="kpi-val ${(T.realized+T.income)>=0?'pos':'neg'}">${fE(T.realized+T.income)}</div></div>
       <div class="card kpi-card"><div class="kpi-lbl">Passif déclaré</div><div class="kpi-val">${fE(T.passiveVal)}</div><div class="kpi-note">AV · PEL · 3e pilier · réserve · comptes</div></div>
     </div>
-    ${(()=>{const stale=stalePriceWarning();return stale.length?`<div class="alert-row" style="background:var(--surface);border:1px solid var(--amber,#e0a458);border-radius:8px;padding:10px 14px;font-size:12px">⚠ <b>Prix potentiellement stalés :</b> ${stale.map(p=>esc(p.sym)).join(', ')} — dernier prix = PRU ou mis à jour il y a plus de 7j. Les courbes de valeur peuvent refléter le coût d'achat et non la valeur réelle. <a href="#" onclick="goTab('portfolio');return false" style="color:var(--accent)">Mettre à jour les prix →</a></div>`:''})()}
+    ${(()=>{
+      const fi=prixFiabilite(pos);
+      const icon=fi.ok?'✓':fi.score>=70?'⚠':'✕';
+      const bg=fi.ok?'transparent':fi.score>=70?'rgba(224,164,88,0.10)':'rgba(224,88,88,0.10)';
+      const border=fi.ok?'var(--border)':fi.score>=70?'#e0a458':'#e05858';
+      const details=[];
+      if(fi.missing>0)details.push(`<b>${fi.missing}</b> prix manquant${fi.missing>1?'s':''} (valeur = PRU — trompeuse)`);
+      if(fi.stale>0)details.push(`<b>${fi.stale}</b> prix daté${fi.stale>1?'s':''} >7j`);
+      const syms=[...fi.missing_syms,...fi.stale_syms];
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;border-radius:8px;border:1px solid ${border};background:${bg};font-size:12px">
+        <span style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:700;color:${fi.color}">${icon}</span>
+          <span><b>Prix fiables :</b> ${fi.fiables}/${fi.total} actifs${details.length?' · '+details.join(' · '):''}</span>
+          ${syms.length?`<span class="muted">(${syms.slice(0,5).map(s=>`<code style="font-size:10px;background:var(--surface2);padding:1px 4px;border-radius:3px">${esc(s)}</code>`).join(' ')}${syms.length>5?' …':''})</span>`:''}
+        </span>
+        ${!fi.ok?`<a href="#" onclick="goTab('portfolio');return false" style="white-space:nowrap;color:var(--accent);font-size:11px">Mettre à jour →</a>`:''}
+      </div>`;
+    })()}
     <div class="card">
-      <div class="toolbar"><div><div class="card-title" style="margin:0">Capital injecté</div><div class="hint">depuis les transactions · escalier = chaque achat/vente</div></div>
-      <div class="fa"><button class="btn btn-d" onclick="resetHistory()">Vider snapshots</button></div></div>
-      <div class="period-bar">${periods.map(([id,l])=>{const p=perfPeriod(id);return`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}${p?` · ${fP(p.pct)}`:''}</button>`}).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">Perso</button></div>
-      ${activePeriod==='custom'?`<div class="fa" style="margin:6px 0 10px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}
-      <div class="chart-sub">Somme exacte des achats ETF·actions·crypto (frais inclus), ventes déduites au coût moyen. Recalculé depuis tes transactions — indépendant des snapshots.</div>
+      <div class="toolbar">
+        <div><div class="card-title" style="margin:0">Capital injecté</div>
+        <div class="hint">depuis les transactions · données exactes · indépendant des prix</div></div>
+        <div class="fa">
+          <div class="period-bar" style="margin:0">${periods.map(([id,l])=>`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}</button>`).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">…</button></div>
+          <button class="btn btn-d" onclick="resetHistory()">Vider</button>
+        </div>
+      </div>
+      ${activePeriod==='custom'?`<div class="fa" style="margin:4px 0 8px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}
+      <div class="chart-sub">Escalier = chaque achat/vente. Somme des prix payés + frais, ventes soustraites au coût moyen. Zéro approximation, zéro prix de marché.</div>
       <div class="chart-inner"><canvas id="hist-capital"></canvas></div>
     </div>
     <div class="card">
-      <div class="toolbar"><div><div class="card-title" style="margin:0">Valeur marché &amp; patrimoine total</div><div class="hint">depuis les snapshots · ${histRangeLabel()}</div></div>
-      <div class="fa"><button class="btn btn-g" onclick="createSnapshot(true);renderDashboard()">Snapshot maintenant</button></div></div>
-      <div class="chart-sub">Basé sur les prix au moment de chaque snapshot. Si peu de snapshots ou prix stalés, la courbe ne reflète pas les vraies variations intra-période.</div>
-      <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de snapshots — crée-en un maintenant, puis un autre plus tard.</div>':'<canvas id="hist-valeur"></canvas>'}</div>
+      <div class="toolbar">
+        <div><div class="card-title" style="margin:0">Valeur marché vs capital injecté</div>
+        <div class="hint">snapshots · ${histRangeLabel()}</div></div>
+        <div class="fa"><button class="btn btn-g" onclick="createSnapshot(true);renderDashboard()">Snapshot maintenant</button></div>
+      </div>
+      <div class="chart-sub">Violet = valeur de marché (prix réels uniquement — trou = prix absent). Tirets bleus = capital injecté projeté aux mêmes dates. <b>Segment ambre</b> = snapshot avec prix partiels. <b>Segment rouge</b> = aucun prix.</div>
+      <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Crée un snapshot maintenant, puis un autre après une évolution de prix.</div>':'<canvas id="hist-valeur"></canvas>'}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Gain / Perte latent</div>
+      <div class="chart-sub">Valeur marché − capital injecté à chaque snapshot. Vert = en gain, rouge = en perte. Absent si prix manquants.</div>
+      <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de snapshots.</div>':'<canvas id="hist-pl"></canvas>'}</div>
     </div>
     <div class="card">
       <div class="card-title">Évolution par catégorie — ETF · Crypto · Actions</div>
@@ -671,34 +750,45 @@ function capitalInjecteParDate(){
   let cumul=0;
   return dates.map(date=>{cumul+=byDate[date];return{date,cumul};});
 }
-function stalePriceWarning(){
-  // Retourne une liste des actifs dont le prix = PRU (manuel > 7j ou jamais mis à jour)
-  const STALE_MS=7*24*3600*1000;
-  const now=Date.now();
-  const pos=positions();
-  const stale=pos.filter(p=>{
-    const pd=S.prices[p.sym.toLowerCase()];
-    if(!pd||!pd.at)return true;  // jamais mis à jour
-    if(pd.src==='manuel'&&(now-new Date(pd.at).getTime())>STALE_MS)return true;
-    return false;
-  });
-  return stale;
+function prixFiabilite(pos_arg){
+  const pos=pos_arg||positions();
+  const total=pos.length;
+  if(!total)return{total:0,live:0,recent:0,stale:0,missing:0,score:100,label:'Aucune position',color:'var(--muted)',ok:true};
+  const byStatus={live:0,recent:0,stale:0,missing:0};
+  pos.forEach(p=>byStatus[p.priceStatus]=(byStatus[p.priceStatus]||0)+1);
+  const fiables=byStatus.live+byStatus.recent;
+  const score=Math.round(fiables/total*100);
+  const color=score===100?'var(--green)':score>=70?'var(--amber,#e0a458)':'var(--red)';
+  const issues=[];
+  if(byStatus.missing)issues.push(`${byStatus.missing} manquant${byStatus.missing>1?'s':''}`);
+  if(byStatus.stale)issues.push(`${byStatus.stale} daté${byStatus.stale>1?'s':''} (>7j)`);
+  const label=issues.length?issues.join(' · '):'Tous les prix à jour';
+  return{total,fiables,...byStatus,score,label,color,ok:fiables===total,
+    missing_syms:pos.filter(p=>p.priceStatus==='missing').map(p=>p.sym),
+    stale_syms:pos.filter(p=>p.priceStatus==='stale').map(p=>p.sym)};
 }
 
 function drawHistoryChart(){
   const {from,to}=histRange();
   let snaps=[...(S.snapshots||[])].filter(s=>{
     const d=new Date(s.date);
-    if(from&&d<from)return false;
-    if(to&&d>to)return false;
-    return true;
+    return !(from&&d<from)&&!(to&&d>to);
   }).sort((a,b)=>new Date(a.date)-new Date(b.date));
 
   const dark=document.documentElement.getAttribute('data-theme')==='dark';
   const grid=dark?'rgba(36,40,51,1)':'rgba(230,230,223,1)';
   const muted=dark?'#888fa0':'#71757e';
 
-  const baseOpts=(legendDisplay,yCallback)=>({
+  // Helpers
+  const fmtDate=d=>new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+  const fmtTime=d=>new Date(d).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const snapLabels=snaps.map(s=>{
+    const days=new Set(snaps.map(x=>(x.date||'').slice(0,10)));
+    return days.size<=1?fmtTime(s.date):fmtDate(s.date);
+  });
+  const pr=snaps.length<20?3:0;
+
+  const baseOpts=(legendDisplay,extraScaleY)=>({
     responsive:true,maintainAspectRatio:false,
     interaction:{intersect:false,mode:'index'},
     plugins:{
@@ -707,93 +797,147 @@ function drawHistoryChart(){
     },
     scales:{
       x:{grid:{display:false},ticks:{color:muted,maxTicksLimit:8,font:{size:10}}},
-      y:{grid:{color:grid},ticks:{color:muted,maxTicksLimit:6,font:{size:10},
-        callback:yCallback||(v=>v>=1000?`${Math.round(v/1000)}k`:Math.round(v))}}
+      y:{...( extraScaleY||{}),grid:{color:grid},ticks:{color:muted,maxTicksLimit:6,font:{size:10},callback:v=>v>=1000?`${Math.round(v/1000)}k`:Math.round(v)}}
     }
   });
 
-  // ── Graphique A : Capital injecté (depuis transactions uniquement) ────────
-  // Courbe en escalier, données 100% exactes, indépendante des snapshots
+  const noData=msg=>`<div class="chart-empty">${msg}</div>`;
+  const setInner=(id,html)=>{const el=byId(id);if(el)(el.closest('.chart-inner')||el.parentElement).innerHTML=html;};
+
+  // ── A. Capital injecté (transactions uniquement — escalier exact) ─────────
   const elCap=byId('hist-capital');
   if(elCap){
-    let capData=capitalInjecteParDate();
-    if(from)capData=capData.filter(c=>new Date(c.date)>=from);
-    if(to)capData=capData.filter(c=>new Date(c.date)<=to);
-
-    if(capData.length<1){
-      (elCap.closest('.chart-inner')||elCap.parentElement).innerHTML='<div class="chart-empty">Aucune transaction de marché enregistrée.</div>';
+    let cap=capitalInjecteParDate();
+    if(from)cap=cap.filter(c=>new Date(c.date)>=from);
+    if(to)cap=cap.filter(c=>new Date(c.date)<=to);
+    if(cap.length<1){
+      setInner('hist-capital',noData('Aucune transaction de marché enregistrée.'));
     } else {
-      // Étendre le dernier point jusqu'à aujourd'hui pour que l'escalier ne s'arrête pas dans le vide
+      // Étendre jusqu\'à aujourd\'hui
       const todayStr=new Date().toISOString().slice(0,10);
-      if(capData[capData.length-1].date<todayStr)
-        capData=[...capData,{date:todayStr,cumul:capData[capData.length-1].cumul}];
-
-      const capLabels=capData.map(c=>new Date(c.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}));
-      const capValues=capData.map(c=>c.cumul);
+      if(cap[cap.length-1].date<todayStr)cap=[...cap,{date:todayStr,cumul:cap[cap.length-1].cumul}];
+      const capLabels=cap.map(c=>fmtDate(c.date));
       const dsCap=[{
-        label:'Capital injecté (achats − coût ventes)',
-        data:capValues,
-        borderColor:'#4f9dde',
-        backgroundColor:'rgba(79,157,222,0.08)',
-        fill:true,
-        stepped:'before',   // escalier pur
-        tension:0,          // pas de lissage
-        pointRadius:capData.length<=30?3:0,
-        pointHoverRadius:5,
-        borderWidth:2
+        label:'Capital injecté (achats, frais inclus · ventes au coût moyen)',
+        data:cap.map(c=>c.cumul),
+        borderColor:'#4f9dde',backgroundColor:'rgba(79,157,222,0.08)',
+        fill:true,stepped:'before',tension:0,
+        pointRadius:cap.length<=40?2:0,pointHoverRadius:5,borderWidth:2
       }];
       if(!chartAvailable())chartFallback('hist-capital',dsCap,capLabels);
-      else{charts.push(new Chart(elCap.getContext('2d'),{
-        type:'line',data:{labels:capLabels,datasets:dsCap},
-        options:baseOpts(false)
-      }));}
+      else charts.push(new Chart(elCap.getContext('2d'),{type:'line',data:{labels:capLabels,datasets:dsCap},options:baseOpts(false)}));
     }
   }
 
-  // ── Graphique B : Valeur marché + patrimoine total (depuis snapshots) ─────
+  // ── B. Valeur marché vs Capital investi — même axe X (dates snapshots) ────
+  // + indicateur fiabilité par point
   const elVal=byId('hist-valeur');
   if(elVal){
     if(snaps.length<2){
-      (elVal.closest('.chart-inner')||elVal.parentElement).innerHTML='<div class="chart-empty">Pas assez de snapshots — crée-en un maintenant.</div>';
+      setInner('hist-valeur',noData('Pas assez de snapshots — crée-en un maintenant, puis un autre plus tard.'));
     } else {
-      const days=new Set(snaps.map(s=>(s.date||'').slice(0,10)));
-      const sameDay=days.size<=1;
-      const snapLabels=snaps.map(s=>{const d=new Date(s.date);return sameDay?d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});});
-      const pr=snaps.length<15?3:0;
+      // Capital injecté interpolé aux dates des snapshots (valeur au moment du snap)
+      const capAll=capitalInjecteParDate();
+      const capMap=Object.fromEntries(capAll.map(c=>[c.date,c.cumul]));
+      // Propagation forward pour chaque date snapshot
+      let lastCap=0;
+      const snapCap=snaps.map(s=>{
+        const d=(s.date||'').slice(0,10);
+        // Trouver le dernier cumul <= cette date
+        const match=capAll.filter(c=>c.date<=d);
+        if(match.length)lastCap=match[match.length-1].cumul;
+        return lastCap||null;
+      });
+
+      // Valeur marché : utiliser marketVal (vrais prix) si dispo, sinon null
+      const marketVals=snaps.map(s=>s.marketVal!=null&&s.marketVal>0?s.marketVal:null);
+      // Fiabilité par snapshot
+      const reliability=snaps.map(s=>s.reliability||'unknown');
 
       const dsVal=[
-        {label:'Patrimoine total',data:snaps.map(s=>s.total),borderColor:'#cdb78a',backgroundColor:'#cdb78a15',fill:true,tension:.4,pointRadius:pr,borderWidth:2.5},
-        {label:'Portefeuille marché',data:snaps.map(s=>s.marketVal??null),borderColor:'#9b8cff',backgroundColor:'transparent',fill:false,tension:.4,pointRadius:pr,borderWidth:2,spanGaps:true},
-        {label:'Passif déclaré',data:snaps.map(s=>s.passiveVal??null),borderColor:'#7d8694',backgroundColor:'transparent',fill:false,tension:.4,pointRadius:0,borderWidth:1.5,borderDash:[4,3],spanGaps:true},
+        {label:'Valeur marché (prix réels)',
+         data:marketVals,
+         borderColor:'#9b8cff',backgroundColor:'rgba(155,140,255,0.08)',
+         fill:true,tension:.35,pointRadius:pr,pointHoverRadius:6,borderWidth:2.5,
+         spanGaps:false,  // ne pas relier les trous — montre l\'absence de prix
+         segment:{borderColor:ctx=>{
+           // Colore en ambre les segments où la fiabilité est partielle
+           const i=ctx.p0DataIndex;
+           return reliability[i]==='partial'?'#e0a458':reliability[i]==='none'?'#e05858':undefined;
+         }}
+        },
+        {label:'Capital injecté (réf.)',
+         data:snapCap,
+         borderColor:'#4f9dde',backgroundColor:'transparent',
+         fill:false,tension:0,stepped:'before',
+         pointRadius:0,borderWidth:1.5,borderDash:[3,3],
+         spanGaps:true
+        },
       ].filter(d=>d.data.some(v=>v!=null&&v>0));
 
       if(!chartAvailable())chartFallback('hist-valeur',dsVal,snapLabels);
-      else charts.push(new Chart(elVal.getContext('2d'),{
-        type:'line',data:{labels:snapLabels,datasets:dsVal},
-        options:baseOpts(true)
-      }));
+      else charts.push(new Chart(elVal.getContext('2d'),{type:'line',data:{labels:snapLabels,datasets:dsVal},options:baseOpts(true)}));
     }
   }
 
-  // ── Graphique C : Par catégorie (snapshots) ───────────────────────────────
-  const el3=byId('hist-categories');if(!el3)return;
-  if(snaps.length<2){(el3.closest('.chart-inner')||el3.parentElement).innerHTML='<div class="chart-empty">Pas assez de données.</div>';return;}
+  // ── C. Gain / Perte latent — courbe autour de zéro ───────────────────────
+  const elPl=byId('hist-pl');
+  if(elPl){
+    if(snaps.length<2){
+      setInner('hist-pl',noData('Pas assez de snapshots.'));
+    } else {
+      const capAll2=capitalInjecteParDate();
+      let lastCap2=0;
+      const snapPl=snaps.map(s=>{
+        const d=(s.date||'').slice(0,10);
+        const match=capAll2.filter(c=>c.date<=d);
+        if(match.length)lastCap2=match[match.length-1].cumul;
+        const mv=s.marketVal!=null&&s.marketVal>0?s.marketVal:null;
+        return mv!=null&&lastCap2>0?mv-lastCap2:null;
+      });
+      const hasData=snapPl.some(v=>v!=null);
+      if(!hasData){
+        setInner('hist-pl',noData('Aucune valeur marché disponible dans les snapshots. Mets à jour les prix et crée un snapshot.'));
+      } else {
+        // Dataset avec couleur dynamique : vert si positif, rouge si négatif
+        const dsPl=[{
+          label:'Plus-value latente',
+          data:snapPl,
+          borderColor:'#43d39a',  // sera overridé par segment
+          backgroundColor:'rgba(67,211,154,0.08)',
+          fill:{target:'origin'},  // remplir depuis zéro
+          tension:.35,pointRadius:pr,pointHoverRadius:6,borderWidth:2,
+          spanGaps:false,
+          segment:{
+            borderColor:ctx=>ctx.p0.parsed.y>=0?'#43d39a':'#e05858',
+            backgroundColor:ctx=>ctx.p0.parsed.y>=0?'rgba(67,211,154,0.08)':'rgba(224,88,88,0.08)'
+          }
+        }];
+        const plOpts=baseOpts(false);
+        // Ligne zéro visible
+        plOpts.plugins.annotation={annotations:{zero:{type:'line',yMin:0,yMax:0,borderColor:muted,borderWidth:1,borderDash:[2,2]}}};
+        if(!chartAvailable())chartFallback('hist-pl',dsPl,snapLabels);
+        else charts.push(new Chart(elPl.getContext('2d'),{type:'line',data:{labels:snapLabels,datasets:dsPl},options:plOpts}));
+      }
+    }
+  }
+
+  // ── D. Par catégorie (snapshots) ──────────────────────────────────────────
+  const el4=byId('hist-categories');if(!el4)return;
+  if(snaps.length<2){setInner('hist-categories',noData('Pas assez de données.'));return;}
   const hasAlloc=snaps.some(s=>s.allocation&&Object.keys(s.allocation).length>0);
-  if(!hasAlloc){(el3.closest('.chart-inner')||el3.parentElement).innerHTML='<div class="chart-empty">Données par catégorie disponibles au prochain snapshot.</div>';return;}
+  if(!hasAlloc){setInner('hist-categories',noData('Données par catégorie disponibles au prochain snapshot.'));return;}
   const catDefs=[
     {key:'etf',label:'ETF',color:'#9b8cff',bg:'rgba(155,140,255,0.10)'},
     {key:'crypto',label:'Crypto',color:'#4f9dde',bg:'rgba(79,157,222,0.10)'},
     {key:'stock',label:'Actions',color:'#e0a458',bg:'rgba(224,164,88,0.10)'},
     {key:'gold',label:'Or',color:'#e8c56a',bg:'rgba(232,197,106,0.08)'},
   ];
-  const days2=new Set(snaps.map(s=>(s.date||'').slice(0,10)));
-  const sl2=snaps.map(s=>{const d=new Date(s.date);return days2.size<=1?d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});});
-  const pr2=snaps.length<15?3:0;
   const activeCats=catDefs.filter(c=>snaps.some(s=>s.allocation&&(s.allocation[c.key]||0)>0));
-  if(!activeCats.length){(el3.closest('.chart-inner')||el3.parentElement).innerHTML='<div class="chart-empty">Aucune donnée de catégorie.</div>';return;}
-  const ds3=activeCats.map(c=>({label:c.label,data:snaps.map(s=>((s.allocation||{})[c.key])||0),borderColor:c.color,backgroundColor:c.bg,fill:false,tension:.4,pointRadius:pr2,pointHoverRadius:5,borderWidth:2}));
-  if(!chartAvailable()){chartFallback('hist-categories',ds3,sl2);return;}
-  charts.push(new Chart(el3.getContext('2d'),{type:'line',data:{labels:sl2,datasets:ds3},options:baseOpts(true)}));
+  if(!activeCats.length){setInner('hist-categories',noData('Aucune donnée de catégorie.'));return;}
+  const ds4=activeCats.map(c=>({label:c.label,data:snaps.map(s=>((s.allocation||{})[c.key])||0),borderColor:c.color,backgroundColor:c.bg,fill:false,tension:.35,pointRadius:pr,pointHoverRadius:5,borderWidth:2}));
+  if(!chartAvailable()){chartFallback('hist-categories',ds4,snapLabels);return;}
+  charts.push(new Chart(el4.getContext('2d'),{type:'line',data:{labels:snapLabels,datasets:ds4},options:baseOpts(true)}));
 }
 
 function drawDonut(ae,canvasId='donut-chart'){const el=byId(canvasId);if(!el||!ae.length)return;if(!chartAvailable()){el.parentElement.innerHTML=`<div style="padding:8px 0">${ae.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:${COLORS[k]||'#888'};display:inline-block"></span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><b>${fE(v)}</b></div>`).join('')}</div>`;return;}charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:ae.map(([k])=>TYPES[k]||ACCOUNT_TYPES[k]||k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ae.map(([k])=>COLORS[k]||'#888'),borderWidth:0}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fE(c.parsed)}`}}}}}));}
@@ -807,8 +951,7 @@ function renderPortfolio(){
   pos=[...pos].sort((a,b)=>{let va,vb;switch(sc){case'name':va=a.name;vb=b.name;return sd*String(va).localeCompare(String(vb));case'qty':va=a.qty;vb=b.qty;break;case'avg':va=a.avg;vb=b.avg;break;case'inv':va=a.inv;vb=b.inv;break;case'pl':va=a.pl;vb=b.pl;break;default:va=a.val;vb=b.val;}return sd*((va||0)-(vb||0));});
   const arrow=col=>pfSort.col===col?(pfSort.dir<0?' ↓':' ↑'):'';
   const th=(col,label,cls='')=>`<th class="${cls}" style="cursor:pointer;user-select:none" onclick="sortPf('${col}')">${label}${arrow(col)}</th>`;
-  // Fraîcheur prix : vert si <24h, ambre si <7j, gris sinon
-  const freshDot=p=>{if(!p.srcAt)return'#7d8694';const d=Date.now()-new Date(p.srcAt).getTime();if(d<864e5)return'#43d39a';if(d<6048e5)return'#e0a458';return'#7d8694';};
+
   byId('content').innerHTML=`<div class="stack">
     <div class="toolbar"><div class="fa">
       <button class="btn btn-p" onclick="showAccountForm()">Ajouter compte / enveloppe</button>
@@ -818,14 +961,26 @@ function renderPortfolio(){
     <div class="section-title">Investissements (${pos.length})</div>
     <div class="card flush"><div class="tbl-wrap"><table>
       <thead><tr>${th('name','Actif','l')}${th('qty','Qté')}${th('avg','PRU')}<th>Prix actuel</th>${th('inv','Investi')}${th('val','Valeur')}${th('pl','+/- latent')}<th>Poids</th></tr></thead>
-      <tbody>${pos.length?pos.map(p=>`<tr>
-        <td class="l"><div class="asset-name">${esc(p.name)} <span class="badge b-${p.type}">${TYPES[p.type]||p.type}</span></div><div class="asset-sub">${esc(p.sym)} · ${esc(p.envelope)} · ${esc(p.platform)} · ${esc(p.cur)}</div></td>
+      <tbody>${pos.length?pos.map(p=>{
+        const ps=p.priceStatus;
+        const psBadge=ps==='live'?'<span class="badge b-live" style="font-size:9px">live</span>':ps==='recent'?'<span class="badge b-account" style="font-size:9px">récent</span>':ps==='stale'?'<span class="badge" style="font-size:9px;background:rgba(224,164,88,0.15);color:#e0a458">daté</span>':'<span class="badge" style="font-size:9px;background:rgba(224,88,88,0.15);color:#e05858">manquant</span>';
+        const priceCell=ps==='missing'
+          ?`<div class="inline-edit"><span style="color:var(--red,#e05858);font-size:12px">Prix à renseigner</span><button class="icon-btn" onclick="editPrice('${esc(p.sym)}',${p.avg||0})">✎</button></div><div class="src-tag muted">—</div>`
+          :`<div class="inline-edit">${psBadge} <span>${fM(p.curP,p.priceCur||p.cur)}</span><button class="icon-btn" onclick="editPrice('${esc(p.sym)}',${p.curP||0})">✎</button></div><div class="src-tag">${esc(p.src)}${p.srcAt?' · '+ago(p.srcAt):''}</div>`;
+        const valCell=p.stalePRU
+          ?`<span class="muted" title="Valeur estimée au PRU — prix réel manquant">${fE(p.val)} <span style="font-size:9px">(PRU)</span></span>`
+          :`${fE(p.val)}`;
+        const plCell=p.plPct==null
+          ?`<span class="muted" style="font-size:12px">— prix manquant</span>`
+          :`<span class="${p.pl>=0?'pos':'neg'}">${fE(p.pl)}</span><div class="sub-pct ${p.pl>=0?'pos':'neg'}">${fP(p.plPct)}</div>`;
+        return`<tr>
+        <td class="l"><div class="asset-name">${esc(p.name)} <span class="badge b-${p.type}">${TYPES[p.type]||p.type}</span></div><div class="asset-sub">${esc(p.sym)} · ${esc(p.envelope)} · ${esc(p.platform)}</div></td>
         <td>${fN(p.qty)}</td><td>${fM(p.avg,p.cur)}</td>
-        <td><div class="inline-edit"><span class="leg-dot" style="background:${freshDot(p)};display:inline-block;margin-right:6px;vertical-align:middle" title="${p.srcAt?'Maj '+ago(p.srcAt):'Jamais mis à jour'}"></span><span>${fM(p.curP,p.priceCur||p.cur)}</span><button class="icon-btn" onclick="editPrice('${esc(p.sym)}',${p.curP})">✎</button></div><div class="src-tag">${esc(p.src)}${p.srcAt?' · '+ago(p.srcAt):''}</div></td>
-        <td>${fE(p.inv)}</td><td>${fE(p.val)}</td>
-        <td class="${p.pl>=0?'pos':'neg'}">${fE(p.pl)}<div class="sub-pct">${fP(p.plPct)}</div></td>
-        <td>${(p.val/(T.val||1)*100).toFixed(1)}%</td>
-      </tr>`).join(''):`<tr><td colspan="8" class="empty">${pfSearch?'Aucun résultat pour « '+esc(pfSearch)+' »':'Aucune position.'}</td></tr>`}</tbody>
+        <td>${priceCell}</td>
+        <td>${fE(p.inv)}</td><td>${valCell}</td>
+        <td>${plCell}</td>
+        <td>${p.stalePRU?'—':(p.val/(T.val||1)*100).toFixed(1)+'%'}</td>
+      </tr>`;}).join(''):`<tr><td colspan="8" class="empty">${pfSearch?'Aucun résultat pour « '+esc(pfSearch)+' »':'Aucune position.'}</td></tr>`}</tbody>
     </table></div></div>
     <div class="section-title">Patrimoine global hors marché</div>
     <div class="card flush"><div class="tbl-wrap"><table>
