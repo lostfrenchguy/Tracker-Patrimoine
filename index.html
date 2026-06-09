@@ -594,8 +594,8 @@ function createSnapshot(manual){
 function periodStart(p){const d=new Date();if(p==='1m')d.setMonth(d.getMonth()-1);else if(p==='3m')d.setMonth(d.getMonth()-3);else if(p==='6m')d.setMonth(d.getMonth()-6);else if(p==='1a')d.setFullYear(d.getFullYear()-1);else return null;return d;}
 function histRange(){
   if(activePeriod==='custom'){
-    const from=S.histFrom?new Date(S.histFrom):null;
-    const to=S.histTo?new Date(S.histTo+'T23:59:59'):null;
+    const from=S.histFrom?new Date(S.histFrom+'T00:00:00'):null;
+    const to=S.histTo?new Date(S.histTo+'T23:59:59.999'):null;
     return{from,to};
   }
   return{from:periodStart(activePeriod),to:null};
@@ -666,36 +666,35 @@ function renderDashboardCockpit(){
         ${!fi.ok?`<a href="#" onclick="goTab('portfolio');return false" style="white-space:nowrap;color:var(--accent);font-size:11px">Mettre à jour →</a>`:''}
       </div>`;
     })()}
-    <div class="card">
-      <div class="toolbar">
-        <div><div class="card-title" style="margin:0">Capital injecté</div>
-        <div class="hint">depuis les transactions · données exactes · indépendant des prix</div></div>
+    <div class="card" style="padding-bottom:10px">
+      <div class="toolbar" style="margin-bottom:10px">
+        <div><div class="card-title" style="margin:0">Historique</div><div class="hint">${histRangeLabel()}</div></div>
         <div class="fa">
-          <div class="period-bar" style="margin:0">${periods.map(([id,l])=>`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}</button>`).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">…</button></div>
+          <div class="period-bar" style="margin:0">${periods.map(([id,l])=>{const p=perfPeriod(id);return`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}${p?` <span style='font-size:10px;opacity:.7'>${fP(p.pct)}</span>`:''}</button>`}).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">Perso</button></div>
+          <button class="btn btn-g" onclick="createSnapshot(true);renderDashboard()">Snapshot maintenant</button>
           <button class="btn btn-d" onclick="resetHistory()">Vider</button>
         </div>
       </div>
-      ${activePeriod==='custom'?`<div class="fa" style="margin:4px 0 8px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}
-      <div class="chart-sub">Escalier = chaque achat/vente. Somme des prix payés + frais, ventes soustraites au coût moyen. Zéro approximation, zéro prix de marché.</div>
+      ${activePeriod==='custom'?`<div class="fa" style="margin:0 0 10px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:4px">Capital injecté</div>
+      <div class="chart-sub">Escalier exact depuis tes transactions — chaque marche = un achat ou une vente. Pas de prix de marché, pas de snapshot : 100 % fiable.</div>
       <div class="chart-inner"><canvas id="hist-capital"></canvas></div>
     </div>
     <div class="card">
-      <div class="toolbar">
-        <div><div class="card-title" style="margin:0">Valeur marché vs capital injecté</div>
-        <div class="hint">snapshots · ${histRangeLabel()}</div></div>
-        <div class="fa"><button class="btn btn-g" onclick="createSnapshot(true);renderDashboard()">Snapshot maintenant</button></div>
-      </div>
-      <div class="chart-sub">Violet = valeur de marché (prix réels uniquement — trou = prix absent). Tirets bleus = capital injecté projeté aux mêmes dates. <b>Segment ambre</b> = snapshot avec prix partiels. <b>Segment rouge</b> = aucun prix.</div>
-      <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Crée un snapshot maintenant, puis un autre après une évolution de prix.</div>':'<canvas id="hist-valeur"></canvas>'}</div>
+      <div class="card-title" style="margin-bottom:4px">Valeur marché vs capital injecté</div>
+      <div class="chart-sub">Violet = valeur de marché (snapshot.marketVal). Bleu escalier = capital injecté (snapshot.invested). Même période que le filtre ci-dessus. Les snapshots avec capital incohérent (ancienne logique) sont exclus de la courbe bleue.</div>
+      <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de snapshots.</div>':'<canvas id="hist-valeur"></canvas>'}</div>
     </div>
     <div class="card">
-      <div class="card-title">Gain / Perte latent</div>
-      <div class="chart-sub">Valeur marché − capital injecté à chaque snapshot. Vert = en gain, rouge = en perte. Absent si prix manquants.</div>
+      <div class="card-title" style="margin-bottom:4px">Gain / Perte latent</div>
+      <div class="chart-sub">Valeur de snapshot.unrealized — directement lu, sans recalcul. Vert = en gain, rouge = en perte. Ligne zéro = seuil de rentabilité.</div>
       <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de snapshots.</div>':'<canvas id="hist-pl"></canvas>'}</div>
     </div>
     <div class="card">
-      <div class="card-title">Évolution par catégorie — ETF · Crypto · Actions</div>
-      <div class="chart-sub">Valeur de chaque poche à chaque snapshot. Cliquer sur la légende pour masquer/afficher.</div>
+      <div class="card-title" style="margin-bottom:4px">Évolution par catégorie</div>
+      <div class="chart-sub">snapshot.allocation — valeur de chaque poche à chaque snapshot. Cliquer sur la légende pour masquer/afficher une courbe.</div>
       <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données.</div>':'<canvas id="hist-categories"></canvas>'}</div>
     </div>
     <div class="g2"><div class="card"><div class="card-title">Allocation — patrimoine global</div>${ae.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-chart"></canvas></div><div class="legend">${ae.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><span class="muted">${(v/at*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucune donnée.</p>'}</div>
@@ -829,93 +828,57 @@ function drawHistoryChart(){
     }
   }
 
-  // ── B. Valeur marché vs Capital investi — même axe X (dates snapshots) ────
-  // + indicateur fiabilité par point
+  // ── B. Valeur marché vs Capital injecté — source: snapshots uniquement ─────
   const elVal=byId('hist-valeur');
   if(elVal){
     if(snaps.length<2){
       setInner('hist-valeur',noData('Pas assez de snapshots — crée-en un maintenant, puis un autre plus tard.'));
     } else {
-      // Capital injecté interpolé aux dates des snapshots (valeur au moment du snap)
-      const capAll=capitalInjecteParDate();
-      const capMap=Object.fromEntries(capAll.map(c=>[c.date,c.cumul]));
-      // Propagation forward pour chaque date snapshot
-      let lastCap=0;
-      const snapCap=snaps.map(s=>{
-        const d=(s.date||'').slice(0,10);
-        // Trouver le dernier cumul <= cette date
-        const match=capAll.filter(c=>c.date<=d);
-        if(match.length)lastCap=match[match.length-1].cumul;
-        return lastCap||null;
+      // Heuristique snapshot "ancien" : invested > marketVal * 8 (ancienne logique incluait AV/PEL)
+      const isStaleSnap=s=>(s.invested||0)>0&&(s.marketVal||0)>0&&(s.invested>s.marketVal*8);
+      const hasStale=snaps.some(isStaleSnap);
+      const marketVals=snaps.map(s=>(s.marketVal!=null&&s.marketVal>0)?s.marketVal:null);
+      const investedVals=snaps.map(s=>{
+        if(isStaleSnap(s))return null;
+        return(s.invested!=null&&s.invested>0)?s.invested:null;
       });
-
-      // Valeur marché : utiliser marketVal (vrais prix) si dispo, sinon null
-      const marketVals=snaps.map(s=>s.marketVal!=null&&s.marketVal>0?s.marketVal:null);
-      // Fiabilité par snapshot
-      const reliability=snaps.map(s=>s.reliability||'unknown');
-
+      if(hasStale){
+        const staleCount=snaps.filter(isStaleSnap).length;
+        const warn=elVal.closest('.card')?.querySelector('.chart-sub');
+        if(warn)warn.innerHTML+=` <span style="color:#e0a458">⚠ ${staleCount} snapshot${staleCount>1?'s':''} avec capital incohérent (ancienne logique incluant AV/PEL) : exclus de la courbe bleue.</span>`;
+      }
       const dsVal=[
-        {label:'Valeur marché (prix réels)',
-         data:marketVals,
-         borderColor:'#9b8cff',backgroundColor:'rgba(155,140,255,0.08)',
-         fill:true,tension:.35,pointRadius:pr,pointHoverRadius:6,borderWidth:2.5,
-         spanGaps:false,  // ne pas relier les trous — montre l\'absence de prix
-         segment:{borderColor:ctx=>{
-           // Colore en ambre les segments où la fiabilité est partielle
-           const i=ctx.p0DataIndex;
-           return reliability[i]==='partial'?'#e0a458':reliability[i]==='none'?'#e05858':undefined;
-         }}
-        },
-        {label:'Capital injecté (réf.)',
-         data:snapCap,
-         borderColor:'#4f9dde',backgroundColor:'transparent',
-         fill:false,tension:0,stepped:'before',
-         pointRadius:0,borderWidth:1.5,borderDash:[3,3],
-         spanGaps:true
-        },
+        {label:'Valeur marché',data:marketVals,borderColor:'#9b8cff',backgroundColor:'rgba(155,140,255,0.08)',fill:true,tension:.35,pointRadius:pr,pointHoverRadius:6,borderWidth:2.5,spanGaps:true},
+        {label:'Capital injecté (snapshot)',data:investedVals,borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:0,stepped:'before',pointRadius:pr,pointHoverRadius:5,borderWidth:2,spanGaps:false},
       ].filter(d=>d.data.some(v=>v!=null&&v>0));
-
       if(!chartAvailable())chartFallback('hist-valeur',dsVal,snapLabels);
       else charts.push(new Chart(elVal.getContext('2d'),{type:'line',data:{labels:snapLabels,datasets:dsVal},options:baseOpts(true)}));
     }
   }
 
-  // ── C. Gain / Perte latent — courbe autour de zéro ───────────────────────
+  // ── C. Gain / Perte latent — s.unrealized directement ────────────────────
   const elPl=byId('hist-pl');
   if(elPl){
     if(snaps.length<2){
       setInner('hist-pl',noData('Pas assez de snapshots.'));
     } else {
-      const capAll2=capitalInjecteParDate();
-      let lastCap2=0;
-      const snapPl=snaps.map(s=>{
-        const d=(s.date||'').slice(0,10);
-        const match=capAll2.filter(c=>c.date<=d);
-        if(match.length)lastCap2=match[match.length-1].cumul;
-        const mv=s.marketVal!=null&&s.marketVal>0?s.marketVal:null;
-        return mv!=null&&lastCap2>0?mv-lastCap2:null;
-      });
-      const hasData=snapPl.some(v=>v!=null);
+      const plVals=snaps.map(s=>s.unrealized!=null?s.unrealized:null);
+      const hasData=plVals.some(v=>v!=null);
       if(!hasData){
-        setInner('hist-pl',noData('Aucune valeur marché disponible dans les snapshots. Mets à jour les prix et crée un snapshot.'));
+        setInner('hist-pl',noData('Champ unrealized absent — crée un nouveau snapshot.'));
       } else {
-        // Dataset avec couleur dynamique : vert si positif, rouge si négatif
         const dsPl=[{
-          label:'Plus-value latente',
-          data:snapPl,
-          borderColor:'#43d39a',  // sera overridé par segment
-          backgroundColor:'rgba(67,211,154,0.08)',
-          fill:{target:'origin'},  // remplir depuis zéro
-          tension:.35,pointRadius:pr,pointHoverRadius:6,borderWidth:2,
+          label:'Gain / Perte latent',data:plVals,
+          borderColor:'#43d39a',backgroundColor:'rgba(67,211,154,0.06)',
+          fill:{target:'origin'},tension:.35,pointRadius:pr,pointHoverRadius:6,borderWidth:2,
           spanGaps:false,
           segment:{
             borderColor:ctx=>ctx.p0.parsed.y>=0?'#43d39a':'#e05858',
-            backgroundColor:ctx=>ctx.p0.parsed.y>=0?'rgba(67,211,154,0.08)':'rgba(224,88,88,0.08)'
+            backgroundColor:ctx=>ctx.p0.parsed.y>=0?'rgba(67,211,154,0.06)':'rgba(224,88,88,0.06)'
           }
         }];
         const plOpts=baseOpts(false);
-        // Ligne zéro visible
-        plOpts.plugins.annotation={annotations:{zero:{type:'line',yMin:0,yMax:0,borderColor:muted,borderWidth:1,borderDash:[2,2]}}};
+        plOpts.scales.y.grid={color:ctx=>ctx.tick.value===0?muted:grid};
         if(!chartAvailable())chartFallback('hist-pl',dsPl,snapLabels);
         else charts.push(new Chart(elPl.getContext('2d'),{type:'line',data:{labels:snapLabels,datasets:dsPl},options:plOpts}));
       }
@@ -1470,9 +1433,12 @@ function renderSnapshotManager(){
     const total=s.total!=null?fE(s.total):'—';
     const invested=s.invested!=null?fE(s.invested):'—';
     const latent=s.unrealized!=null?`<span class="${(s.unrealized||0)>=0?'pos':'neg'}">${fE(s.unrealized)}</span>`:'—';
-    return`<tr>
+    // Détecter snapshot incohérent (ancienne logique : invested incluait AV/PEL/3e pilier)
+    const staleSnap=(s.invested||0)>0&&(s.marketVal||0)>0&&(s.invested>s.marketVal*8);
+    const staleTag=staleSnap?'<span title="Capital sauvegardé inclut AV/PEL/3e pilier (ancienne logique) — courbes corrigées automatiquement" style="color:#e0a458;font-size:11px;cursor:help">⚠ ancien</span>':'';
+    return`<tr style="${staleSnap?'opacity:.7':''}">
       <td class="l">${dateStr} <span class="muted" style="font-size:11px">${timeStr}</span></td>
-      <td class="l">${tag}</td>
+      <td class="l">${tag} ${staleTag}</td>
       <td>${total}</td>
       <td>${invested}</td>
       <td>${latent}</td>
