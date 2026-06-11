@@ -4,6 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Tracker Patrimoine</title>
+<meta name="theme-color" content="#0a0b0e"/>
+<meta name="color-scheme" content="dark light"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a0b0e'/%3E%3Cpath d='M16 6l8 10-8 10-8-10z' fill='%23cdb78a'/%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" onerror="window._chartJsFailed=true"></script>
 <script>
@@ -341,14 +344,9 @@ const KNOWN={
   DE:{name:'Deere',type:'stock',cur:'USD',yahoo:'DE'},
   UNP:{name:'Union Pacific',type:'stock',cur:'USD',yahoo:'UNP'}
 };
-const MARKET_ITEMS=[
-  {section:'Indices mondiaux',items:[{label:'S&P 500',ticker:'^GSPC'},{label:'Nasdaq',ticker:'^IXIC'},{label:'CAC 40',ticker:'^FCHI'},{label:'DAX',ticker:'^GDAXI'},{label:'Eurostoxx',ticker:'^STOXX50E'},{label:'Nikkei',ticker:'^N225'}]},
-  {section:'Tes ETF',items:[{label:'MSCI World WPEA',ticker:'WPEA.PA'},{label:'S&P 500 ESEE',ticker:'ESEE.PA'}]},
-  {section:'Crypto',items:[{label:'Bitcoin',ticker:'BTC-EUR'},{label:'Ethereum',ticker:'ETH-EUR'},{label:'Solana',ticker:'SOL-EUR'}]},
-  {section:'Or & matières premières',items:[{label:'Or oz',ticker:'GC=F'},{label:'Argent',ticker:'SI=F'},{label:'Pétrole',ticker:'CL=F'}]},
-  {section:'Actions populaires',items:[{label:'Apple',ticker:'AAPL'},{label:'Nvidia',ticker:'NVDA'},{label:'Microsoft',ticker:'MSFT'},{label:'LVMH',ticker:'MC.PA'},{label:'Airbus',ticker:'AIR.PA'},{label:'TotalEnergies',ticker:'TTE.PA'}]}
-];
 const STORE='tracker_patrimoine_v6';
+// AO00 et WPEA sont le même fonds (MSCI World iShares Swap PEA) : un prix saisi pour l'un vaut pour l'autre
+const PRICE_ALIASES={AO00:['WPEA'],WPEA:['AO00']};
 const OLD_STORES=['tracker_v5','tracker_v4','tracker_v3'];
 const ENVELOPES=['PEA','CTO','Crypto','Or physique','Assurance-vie','PEL','Cash EUR','Cash CHF','3e pilier','Autre'];
 const PLATFORMS=['Trade Republic','Coinbase','Binance','Kraken','Boursorama','Bourse Direct','Fortuneo','Trade Republic PEA','Degiro','Interactive Brokers','3e pilier réel','Assurance-vie','Banque','Coffre / physique','Ledger','MetaMask','Autre'];
@@ -379,10 +377,7 @@ const RWA={
   PYPL:'paypal-ondo-tokenized-stock',MU:'micron-technology-ondo-tokenized-stock',MRVL:'marvell-technology-ondo-tokenized-stock',
   PANW:'palo-alto-networks-ondo-tokenized-stock',SMCI:'super-micro-computer-ondo-tokenized-stock',MSTR:'microstrategy-ondo-tokenized-stock',
   CRCL:'circle-internet-group-ondo-tokenized-stock',IBM:'ibm-ondo-tokenized-stock',CSCO:'cisco-systems-ondo-tokenized-stock',
-  SHOP:'shopify-ondo-tokenized-stock',LMT:'lockheed-ondo-tokenized-stock',GE:'general-electric-ondo-tokenized-stock',
-  MA:'mastercard-ondo-tokenized-stock',MCD:'mcdonald-s-ondo-tokenized-stock',DIS:'disney-ondo-tokenized-stock',
-  NFLX:'netflix-ondo-tokenized-stock',NOW:'servicenow-ondo-tokenized-stock',CRM:'salesforce-ondo-tokenized-stock',
-  ADBE:'adobe-ondo-tokenized-stock'};
+  SHOP:'shopify-ondo-tokenized-stock',LMT:'lockheed-ondo-tokenized-stock',GE:'general-electric-ondo-tokenized-stock'};
 const COLORS={etf:'#9b8cff',stock:'#e0a458',crypto:'#4f9dde',gold:'#e8c56a',cash:'#7d8694',assurance:'#43d39a',pel:'#cdb78a',pillar:'#7dd3fc',other:'#a1a1aa'};
 const DEFAULT_EXPOSURE={WPEA:{USD:65,EUR:20,OTHER:15},AO00:{USD:65,EUR:20,OTHER:15},ESEE:{USD:100},CW8:{USD:65,EUR:20,OTHER:15},IWDA:{USD:65,EUR:20,OTHER:15},SPY:{USD:100},QQQ:{USD:100}};
 const byId=id=>document.getElementById(id);
@@ -459,13 +454,25 @@ function toE(v,c){return num(v)*(S.fx?.[c]||1)}
 function fromE(v,c){return num(v)/(S.fx?.[c]||1)}
 function feeTotal(t){return num(t.fees)+num(t.buyFees)+num(t.sellFees)+num(t.fxFees)+num(t.spreadFees)+num(t.brokerFees)+num(t.custodyFees)}
 function assetCatalog(){const out={...KNOWN};for(const a of S.customAssets||[]){if(a.ticker)out[a.ticker.toUpperCase()]={name:a.name||a.ticker,type:a.type||'other',cur:a.cur||'EUR',isin:a.isin,source:a.priceSource||'manual',platform:a.platform||'',comment:a.comment||''};}return out;}
-// Retourne le statut d'un prix : 'live' <24h, 'recent' <7j, 'stale' >=7j, 'missing' absent
+// Retourne le statut d'un prix : 'live' <24h ET source live, 'recent' <7j (ou manuel frais), 'stale' >=7j, 'missing' absent
 const PRICE_LIVE_MS=864e5,PRICE_STALE_MS=7*864e5;
+function priceEntry(sym){
+  // Cherche le prix sous le ticker demandé puis sous ses alias (AO00↔WPEA) : on garde le plus frais
+  const keys=[String(sym||'').toUpperCase(),...(PRICE_ALIASES[String(sym||'').toUpperCase()]||[])];
+  let best=null;
+  for(const k of keys){
+    const pd=S.prices[k.toLowerCase()];
+    if(!pd||!num(pd.price))continue;
+    const at=pd.at?new Date(pd.at).getTime():0;
+    if(!best||at>best._at)best={...pd,_at:at};
+  }
+  return best;
+}
 function priceStatus(sym){
-  const pd=S.prices[String(sym||'').toLowerCase()];
-  if(!pd||!num(pd.price))return{price:null,status:'missing',label:'Prix manquant',src:'—',at:null};
+  const pd=priceEntry(sym);
+  if(!pd)return{price:null,status:'missing',label:'Prix manquant',src:'—',at:null};
   const age=pd.at?Date.now()-new Date(pd.at).getTime():Infinity;
-  if(age<PRICE_LIVE_MS)return{price:num(pd.price),status:'live',label:'Prix live',src:pd.src||'live',at:pd.at,cur:pd.cur};
+  if(age<PRICE_LIVE_MS&&pd.src==='live')return{price:num(pd.price),status:'live',label:'Prix live',src:'live',at:pd.at,cur:pd.cur};
   if(age<PRICE_STALE_MS)return{price:num(pd.price),status:'recent',label:'Prix récent',src:pd.src||'manuel',at:pd.at,cur:pd.cur};
   return{price:num(pd.price),status:'stale',label:'Prix daté (>7j)',src:pd.src||'manuel',at:pd.at,cur:pd.cur};
 }
@@ -582,7 +589,8 @@ function createSnapshot(manual){
     reliability:pos.length===0?'none':pricedPositions===pos.length?'full':pricedPositions>0?'partial':'none'
   };
   if(todayIdx>=0){
-    // Un seul snapshot par jour : on remplace celui du jour par le plus récent
+    // Un seul snapshot par jour : on remplace celui du jour par le plus récent (en conservant le flag manuel)
+    snap.manual=snap.manual||!!snaps[todayIdx].manual;
     snaps[todayIdx]=snap;
   }else{
     snaps.push(snap);
@@ -618,14 +626,20 @@ function resetHistory(){
   S.snapshots=[];save();createSnapshot(false);renderDashboard();toast('Historique réinitialisé');
 }
 function perfPeriod(p){const snaps=[...(S.snapshots||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));if(snaps.length<2)return null;const start=periodStart(p);const subset=start?snaps.filter(s=>new Date(s.date)>=start):snaps;if(subset.length<2)return null;const a=subset[0],b=subset[subset.length-1];return{delta:b.total-a.total,pct:a.total>0?(b.total-a.total)/a.total*100:0};}
-let tab='dashboard',charts=[],activePeriod='tout',marketCache={},pfSort={col:'val',dir:-1},pfSearch='',txFilter={op:'all',env:'all',q:''};
+let tab='dashboard',charts=[],activePeriod='tout',pfSort={col:'val',dir:-1},pfSearch='',txFilter={op:'all',env:'all',q:''};
 const TAB_TITLES={dashboard:"Vue d'ensemble",portfolio:'Portefeuille',envelopes:'Enveloppes',transactions:'Transactions',income:'Revenus passifs',market:'Marchés',dca:'Plan mensuel',allocation:'Allocation cible',goals:'Objectifs',settings:'Réglages'};
 function killCharts(){charts.forEach(c=>{try{c.destroy()}catch(e){}});charts=[]}
+// Vrai si l'utilisateur est en train de saisir ou si un formulaire est ouvert : on évite alors tout re-render automatique
+function uiBusy(){
+  const a=document.activeElement;
+  if(a&&['INPUT','TEXTAREA','SELECT'].includes(a.tagName))return true;
+  return['tx-form','account-form','asset-form','dca-form','income-form'].some(id=>{const el=byId(id);return el&&el.innerHTML.trim()!=='';});
+}
 function renderCurrent(){killCharts();({dashboard:renderDashboard,portfolio:renderPortfolio,envelopes:renderEnvelopes,transactions:renderTransactions,income:renderIncome,market:renderMarket,dca:renderDca,allocation:renderAllocation,goals:renderGoals,settings:renderSettings})[tab]?.();}
 function goTab(next){const b=document.querySelector(`.nb[data-tab="${next}"]`);if(b)b.click();}
 byId('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;document.querySelectorAll('.nb[data-tab]').forEach(x=>x.classList.remove('on'));b.classList.add('on');tab=b.dataset.tab;byId('page-title').textContent=TAB_TITLES[tab];renderCurrent();});
 byId('theme-btn').addEventListener('click',()=>{const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',next);S.theme=next;byId('theme-label').textContent=next==='dark'?'Mode clair':'Mode sombre';save();renderCurrent();});
-function renderSpotBar(){const items=[['BTC','btc',null],['ETH','eth',null],['SOL','sol',null],['MSCI World (AO00)','ao00','AO00'],['S&P 500 (ESEE)','esee','ESEE'],['Or/oz','xau',null]];byId('spotbar').innerHTML=items.map(([l,k,editSym])=>{const p=S.prices[k];const click=editSym?`onclick="editPrice('${editSym}',${p?num(p.price):0})" style="cursor:pointer" title="Cliquer pour saisir le prix"`:'';return`<div class="spot-item" ${click}><span class="spot-label">${l}</span><span class="spot-price">${p?fM(p.price,p.cur||'EUR'):'—'}</span><span class="spot-dot${p?.src==='live'?' live':''}"></span></div>`}).join('')+`<span class="spot-hint">● live · manuel si non chargé</span>`}
+function renderSpotBar(){const items=[['BTC','BTC',null],['ETH','ETH',null],['SOL','SOL',null],['MSCI World (AO00)','AO00','AO00'],['S&P 500 (ESEE)','ESEE','ESEE'],['Or/oz','XAU',null]];byId('spotbar').innerHTML=items.map(([l,sym,editSym])=>{const p=priceStatus(sym);const click=editSym?`onclick="editPrice('${editSym}',${p.price?num(p.price):0})" style="cursor:pointer" title="Cliquer pour saisir le prix"`:'';return`<div class="spot-item" ${click}><span class="spot-label">${l}</span><span class="spot-price">${p.price!=null?fM(p.price,p.cur||'EUR'):'—'}</span><span class="spot-dot${p.status==='live'?' live':''}"></span></div>`}).join('')+`<span class="spot-hint">● live · manuel si non chargé</span>`}
 function renderDashboardCockpit(){
   const pos=positions(),T=totals(pos),up=T.perf>=0,items=lineItems(),bt=byType(items),ae=Object.entries(bt).filter(([,v])=>v>0),at=T.val||1,risks=riskMetrics(),plan=monthlyPlanSummary();
   const decision=nextDecision(plan),health=dashboardHealth(risks,plan),rows=allocationRows().sort((a,b)=>b.under-a.under||b.absDiff-a.absDiff),actions=dashboardActions(risks,plan,decision);
@@ -959,7 +973,7 @@ function renderPortfolio(){
 }
 function sortPf(col){if(pfSort.col===col){pfSort.dir*=-1;}else{pfSort.col=col;pfSort.dir=col==='name'?1:-1;}renderPortfolio();}
 
-function editPrice(sym,current){const v=prompt('Prix manuel pour '+sym,current);if(v===null)return;const n=num(v);if(n>0){S.prices[sym.toLowerCase()]={price:n,cur:(assetCatalog()[sym.toUpperCase()]?.cur)||'EUR',src:'manuel',at:new Date().toISOString()};save();toast('Prix manuel enregistré');renderCurrent();renderSpotBar();}}
+function editPrice(sym,current){const v=prompt('Prix manuel pour '+sym,current);if(v===null)return;const n=num(v);if(n>0){const up=String(sym).toUpperCase();const entry={price:n,cur:(assetCatalog()[up]?.cur)||'EUR',src:'manuel',at:new Date().toISOString()};[up,...(PRICE_ALIASES[up]||[])].forEach(k=>S.prices[k.toLowerCase()]={...entry});save();toast('Prix manuel enregistré');renderCurrent();renderSpotBar();}}
 function showAccountForm(editId){const a=editId?(S.accounts||[]).find(x=>x.id===editId):null;byId('account-form').innerHTML=`<div class="card"><div class="card-title">${a?'Modifier':'Nouveau'} compte / enveloppe</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="an" value="${esc(a?.name||'')}"></div><div class="fl"><label>Type</label><select id="at">${Object.entries(ACCOUNT_TYPES).map(([k,l])=>`<option value="${k}" ${a?.type===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Enveloppe</label><select id="ae">${ENVELOPES.map(e=>`<option ${a?.envelope===e?'selected':''}>${e}</option>`).join('')}</select></div><div class="fl"><label>Statut</label><select id="as">${Object.entries(ACCOUNT_STATUS).map(([k,l])=>`<option value="${k}" ${defaultAccountStatus(a||{})===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="ac">${['EUR','USD','CHF'].map(c=>`<option ${a?.cur===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="fl"><label>Montant</label><input id="aa" type="number" value="${a?.amount??''}"></div><div class="fl"><label>Institution</label><input id="ai" value="${esc(a?.institution||'')}"></div><div class="fl"><label>Date de mise à jour</label><input id="au" type="date" value="${a?.updatedAt||today()}"></div><div class="fl wide"><label>Commentaire</label><textarea id="aco">${esc(a?.comment||'')}</textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveAccount('${editId||''}')">Enregistrer</button><button class="btn btn-g" onclick="byId('account-form').innerHTML=''">Annuler</button></div></div>`;}
 function editAccount(id){showAccountForm(id)}
 function saveAccount(id){const a={id:id||cid(),name:byId('an').value.trim(),type:byId('at').value,envelope:byId('ae').value,status:byId('as').value,cur:byId('ac').value,amount:num(byId('aa').value),institution:byId('ai').value.trim(),updatedAt:byId('au').value||today(),comment:byId('aco').value.trim()};if(!a.name){toast('Nom requis');return;}S.accounts=id?S.accounts.map(x=>x.id===id?a:x):[...S.accounts,a];save();toast('Compte enregistré');renderPortfolio();}
@@ -1105,23 +1119,14 @@ function saveIncome(){const gross=num(byId('igross').value),tax=num(byId('itax')
 function delIncome(id){if(!confirm('Supprimer ce revenu ?'))return;S.income=S.income.filter(i=>i.id!==id);save();renderIncome();}
 function isFileMode(){try{return String(window?.location?.protocol||location?.protocol||'')==='file:'}catch(e){return true}}
 function liveNetworkAllowed(){return !isFileMode()||S.settings?.allowFileLive===true}
-function remoteAttempts(url){if(!liveNetworkAllowed())return[];return['https://corsproxy.io/?url='+encodeURIComponent(url),'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url)];}
-async function rawFetch(url,ms=9000){for(const u of remoteAttempts(url)){try{const r=await fetch(u,{signal:AbortSignal.timeout(ms)});if(r.ok)return await r.text()}catch(e){}}return null}
-async function gFetch(url){const text=await rawFetch(url);if(!text)return null;try{return JSON.parse(text)}catch(e){return null}}
-async function textFetch(url){return await rawFetch(url)}
-function stooqCurrency(ticker){const t=String(ticker||'').toLowerCase();if(t.includes('-eur')||t.endsWith('eur.cc')||t.includes('.pa')||t.includes('.de')||t.includes('.as')||t.includes('.mi')||t.includes('.mc')||t.includes('.ls'))return'EUR';if(t.includes('-chf')||t.endsWith('chf.cc')||t.includes('.ch')||t.includes('.sw'))return'CHF';if(t.includes('.l'))return'GBP';return'USD';}
-async function stooqPrice(ticker){const url=`https://stooq.com/q/l/?s=${encodeURIComponent(ticker)}&f=sd2t2ohlcv&h&e=csv`,text=await textFetch(url);if(!text)return null;const lines=text.trim().split('\n'),vals=(lines[1]||'').split(','),close=parseFloat(vals[6]);if(close)return{price:close,currency:stooqCurrency(ticker),source:'Stooq'};return null}
-const STOOQ_MAP={'WPEA.PA':'wpea.pa','ESEE.PA':'esee.pa','CW8.PA':'cw8.pa','IWDA.AS':'iwda.as','SPY':'spy.us','QQQ':'qqq.us','DIA':'dia.us','IWM':'iwm.us','^GSPC':'^spx','^IXIC':'^ndq','^DJI':'^dji','^RUT':'^rut','^FCHI':'^fxx','^GDAXI':'^dax','^STOXX50E':'^estoxx50','^FTSE':'^ukx','^SSMI':'^smi','^N225':'^nkx','^HSI':'^hsi','GC=F':'xauusd','SI=F':'xagusd','CL=F':'clusd','NG=F':'ngusd','EURUSD=X':'eurusd','EURCHF=X':'eurchf','USDCHF=X':'usdchf','BTC-EUR':'btc-eur.cc','ETH-EUR':'eth-eur.cc','SOL-EUR':'sol-eur.cc','BNB-EUR':'bnb-eur.cc','XRP-EUR':'xrp-eur.cc','AAPL':'aapl.us','MSFT':'msft.us','NVDA':'nvda.us','AMZN':'amzn.us','GOOGL':'googl.us','META':'meta.us','TSLA':'tsla.us','BRK-B':'brk-b.us','AVGO':'avgo.us','AMD':'amd.us','PLTR':'pltr.us','JPM':'jpm.us','V':'v.us','MC.PA':'mc.pa','BNP.PA':'bnp.pa','AIR.PA':'air.pa','TTE.PA':'tte.pa','OR.PA':'or.pa','RMS.PA':'rms.pa','SAN.PA':'san.pa','ASML.AS':'asml.as','SAP.DE':'sap.de','SIE.DE':'sie.de','NESN.SW':'nesn.ch'};
-async function getPrice(ticker){const mapped=STOOQ_MAP[ticker]||ticker.toLowerCase(),s=await stooqPrice(mapped);if(s)return s;if(STOOQ_MAP[ticker])return null;for(const u of [`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`,`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`]){const j=await gFetch(u),m=j?.chart?.result?.[0]?.meta;if(m?.regularMarketPrice)return{price:m.regularMarketPrice,currency:m.currency||'USD',source:'Yahoo',prev:m.chartPreviousClose||m.previousClose||null}}return null}
 async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fxOk=await fetchFx();if(fxOk)n++;const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={bitcoin:'BTC',ethereum:'ETH',solana:'SOL','pax-gold':'XAU'};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});try{const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`).then(r=>r.json());Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';const price=fromE(j[id].eur,cur);S.prices[sym.toLowerCase()]={price,cur,src:'live',at:now};if(sym==='XAU'){S.goldSpot=j[id].eur;S.goldUpdated=now;}n++;}});}catch(e){}let goldNeeded=pos.some(p=>p.type==='gold')||(S.accounts||[]).some(a=>a.type==='gold')||true;if(goldNeeded){let eur=null;try{const gj=await(await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=eur')).json();if(gj?.['pax-gold']?.eur)eur=gj['pax-gold'].eur;}catch(e){}if(eur){S.goldSpot=eur;S.goldUpdated=now;S.prices.xau={price:eur,cur:'EUR',src:'live',at:now};n++}}// ETF + actions via tokens RWA CoinGecko (USD→EUR)
   const rwaSyms=pos.filter(p=>['etf','stock'].includes(p.type)&&RWA[p.sym]).map(p=>p.sym);
   if(rwaSyms.length){const rwaOut=await fetchRwaPrices(rwaSyms);n+=Object.keys(rwaOut).length;}S.lastRefresh=now;createSnapshot(false);save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh : ${ago(now)} · auto 4h`;renderSpotBar();renderCurrent();toast(n?`${n} prix mis à jour + snapshot créé`:'Serveurs inaccessibles: prix manuels conservés');}
-setInterval(()=>{if(navigator.onLine)doRefresh()},4*60*60*1000);
+setInterval(()=>{if(navigator.onLine&&!uiBusy())doRefresh()},4*60*60*1000);
 // Taux de change toutes les heures (EUR/USD/CHF critique pour Nathan)
 setInterval(()=>{if(navigator.onLine)fetchFx()},60*60*1000);
 function qid(ticker){return 'mc-'+String(ticker).replace(/[^a-z0-9]/gi,'_')}
 function uniqueMarketItems(items){const seen=new Set();return items.filter(it=>{const k=it.ticker+'|'+(it.localSym||'');if(seen.has(k))return false;seen.add(k);return true;});}
-function marketTickerFor(sym,type){const info=assetCatalog()[String(sym||'').toUpperCase()]||{};if(info.yahoo)return info.yahoo;if(type==='crypto')return String(sym||'').toUpperCase()+'-EUR';return String(sym||'').toUpperCase();}
 function myMarketItems(){
   const pos=positions(),cat=assetCatalog();
   // ETF PEA : on part des positions réelles, puis on garantit MSCI World (AO00) et S&P 500 (ESEE)
@@ -1183,16 +1188,26 @@ async function renderMarket(force=false){
 
   // 1. Crypto via CoinGecko (pas de CORS)
   const cryptoItems=sections.flatMap(s=>s.items).filter(it=>it.kind==='crypto');
+  const cryptoOffline=()=>cryptoItems.forEach(it=>{
+    const card=byId(qid(it.cgId));if(!card)return;
+    const fb=priceStatus(it.localSym);
+    const ld=card.querySelector('.mc-loading');
+    ld.className=fb.price!=null?'mc-loading':'mc-loading mc-error';
+    ld.textContent=fb.price!=null?'Hors ligne · dernier connu':'Hors ligne · clique pour saisir';
+    if(fb.price!=null)card.querySelector('.mc-price').textContent=fM(fb.price,fb.cur||'EUR');
+  });
   if(cryptoItems.length){
     const ids=[...new Set(cryptoItems.map(it=>it.cgId))].join(',');
     try{
       const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=eur&include_24hr_change=true`).then(r=>r.json());
       const now=new Date().toISOString();
+      let any=false;
       cryptoItems.forEach(it=>{
         const card=byId(qid(it.cgId));if(!card)return;
         const price=j?.[it.cgId]?.eur;
         const chg=j?.[it.cgId]?.eur_24h_change;
         if(price){
+          any=true;
           S.prices[it.localSym.toLowerCase()]={price,cur:'EUR',src:'live',at:now};
           card.querySelector('.mc-price').textContent=fM(price,'EUR');
           const ld=card.querySelector('.mc-loading');
@@ -1203,8 +1218,9 @@ async function renderMarket(force=false){
           card.querySelector('.badge').textContent='live';
         }
       });
+      if(!any)cryptoOffline();
       save();renderSpotBar();
-    }catch(e){}
+    }catch(e){cryptoOffline();}
   }
 
   // ETF + actions : prix auto via tokens RWA (CoinGecko, USD→EUR), fallback manuel
@@ -1233,10 +1249,6 @@ async function renderMarket(force=false){
   }
 }
 
-function formatMarketPrice(d,it){if(it.kind==='ratio')return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:4}).format(num(d.price));if(it.kind==='index')return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2}).format(num(d.price));return fM(d.price,d.cur==='EUR'?'EUR':d.cur||'USD');}
-let marketHistoryCache={};
-async function runLimited(items,limit,fn){const queue=[...items];const workers=Array.from({length:Math.min(limit,queue.length)},async()=>{while(queue.length){await fn(queue.shift());}});await Promise.all(workers);}
-function updateMarketCard(card,d,it){card.querySelector('.mc-price').textContent=formatMarketPrice(d,it);const chg=d.prev?((d.price-d.prev)/d.prev)*100:null;card.querySelector('.mc-loading').className=chg==null?'mc-loading':'mc-chg '+(chg>=0?'pos':'neg');card.querySelector('.mc-loading').textContent=chg==null?'En direct':`${chg>=0?'▲ +':'▼ '}${chg.toFixed(2)} %`;card.querySelector('.mc-source').textContent=`${d.source||'live'} · ${ago(new Date(d.ts).toISOString())}`;card.querySelector('.badge').className='badge b-live';card.querySelector('.badge').textContent='live';}
 function renderDca(){const plan=monthlyPlanSummary(),mk=plan.mk,lines=plan.lines,execs=S.dca.executions||[],done=plan.done,planned=plan.planned,actual=plan.actual;byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="hint">Plan mensuel limité aux enveloppes alimentées: PEA, CTO et crypto. Assurance-vie, 3e pilier et PEL restent en suivi patrimonial.</div><button class="btn btn-p" onclick="showDcaForm()">Ajouter ligne</button></div><div id="dca-form"></div><div class="g3"><div class="card kpi-card"><div class="kpi-lbl">Prévu ce mois</div><div class="kpi-val">${fE(planned)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Déjà exécuté</div><div class="kpi-val pos">${fE(actual)}</div><div class="progress" style="margin-top:8px"><span style="width:${planned>0?clamp(actual/planned*100,0,100):0}%"></span></div><div class="hint" style="margin-top:4px">${planned>0?(actual/planned*100).toFixed(0):0}% du plan</div></div><div class="card kpi-card"><div class="kpi-lbl">Reste à investir</div><div class="kpi-val">${fE(Math.max(0,planned-actual))}</div></div></div><div class="card"><div class="card-title">Plan du mois — ${mk}</div>${lines.map(l=>{const ex=done(l.id);return`<div class="dca-row"><button class="chk ${ex?'on':''}" onclick="executeDca('${l.id}')">${ex?'✓':''}</button><div><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · jour ${l.day||'—'}</div></div><span>${fE(l.plannedAmt)}</span><span>${ex?fE(ex.actual):'—'}</span><span class="${ex&&ex.actual-l.plannedAmt>=0?'pos':'neg'}">${ex?fE(ex.actual-l.plannedAmt):'—'}</span><span class="muted">${esc(l.platform)}</span><button class="icon-btn" onclick="delDcaLine('${l.id}')">×</button></div>`}).join('')||'<div class="empty">Aucune ligne mensuelle active.</div>'}</div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Mois</th><th class="l">Actif</th><th>Prévu</th><th>Brut réel</th><th>Frais</th><th>Qté</th><th>Écart</th><th class="l">Transaction</th></tr></thead><tbody>${execs.slice().reverse().map(e=>`<tr><td class="l">${e.month}</td><td class="l">${esc(e.name)}</td><td>${fE(e.planned)}</td><td>${fE(e.actual)}</td><td>${num(e.fees)+num(e.spreadFees)?fE(num(e.fees)+num(e.spreadFees)):'—'}</td><td>${e.qty?fN(e.qty):'—'}</td><td class="${e.actual-e.planned>=0?'pos':'neg'}">${fE(e.actual-e.planned)}</td><td class="l muted">${e.txId?'créée':'non créée'}</td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun historique mensuel.</td></tr>`}</tbody></table></div></div></div>`}
 function showDcaForm(){byId('dca-form').innerHTML=`<div class="card"><div class="card-title">Nouvelle ligne mensuelle</div><div style="display:flex;gap:10px;margin-bottom:10px"><div class="fl" style="flex:1"><label>Ticker</label><div class="autocomplete-wrap"><input id="ds" style="text-transform:uppercase;width:100%" oninput="dcaAcSearch(this.value)" autocomplete="off" placeholder="Ex: AO00, ESEE, BTC…"><div class="autocomplete-list" id="dac-list" style="display:none"></div></div></div><div class="fl" style="flex:2"><label>Nom</label><input id="dn" placeholder="Rempli automatiquement"></div></div><div class="fgrid" style="overflow:visible"><div class="fl"><label>Type</label><select id="dt">${Object.entries(TYPES).filter(([k])=>['etf','stock','crypto'].includes(k)).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Montant prévu</label><input id="da" type="number"></div><div class="fl"><label>Fréquence</label><select id="df"><option>Mensuelle</option><option>Trimestrielle</option><option>Hebdomadaire</option></select></div><div class="fl"><label>Plateforme</label><select id="dp">${PLATFORMS.map(pf=>`<option>${pf}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="dc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Jour du mois</label><input id="dd" type="number" value="5"></div><div class="fl"><label>Enveloppe</label><select id="de">${DCA_ENVELOPES.map(e=>`<option>${e}</option>`).join('')}</select></div></div><div class="fa"><button class="btn btn-p" onclick="saveDcaLine()">Enregistrer</button><button class="btn btn-g" onclick="byId('dca-form').innerHTML=''">Annuler</button></div></div>`}
 function dcaAcSearch(val){const list=byId('dac-list');if(!list||!val){if(list)list.style.display='none';return;}const q=val.toUpperCase(),cat=assetCatalog();const matches=Object.entries(cat).filter(([k,v])=>k.includes(q)||String(v.name).toUpperCase().includes(q)).slice(0,9);if(!matches.length){list.style.display='none';return;}list.innerHTML=matches.map(([k,v])=>`<div class="ac-item" onmousedown="dcaAcSelect('${k}')"><div><div class="ac-name">${k} — ${esc(v.name)}</div><div class="ac-type">${TYPES[v.type]||v.type} · ${v.cur}</div></div><span class="badge b-${v.type}">${TYPES[v.type]||v.type}</span></div>`).join('');list.style.display='block';}
@@ -1281,7 +1293,7 @@ function renderAllocation(){const items=strategyItems(),baseValue=sumItems(items
     if(dn){dn.innerHTML=`
       <div class="card"><div class="card-title">Allocation actuelle</div><div class="donut-wrap" style="max-width:220px;margin:0 auto"><canvas id="alloc-actual"></canvas></div></div>
       <div class="card"><div class="card-title">Allocation cible</div><div class="donut-wrap" style="max-width:220px;margin:0 auto"><canvas id="alloc-target"></canvas></div></div>`;
-    const mk=(id,data,extra)=>{const el=byId(id);if(!el)return;charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:[...labels,'Reste'],datasets:[{data:[...data,extra],backgroundColor:[...labels.map((_,i)=>PALETTE[i%PALETTE.length]),'#3a3f4b'],borderWidth:0}]},options:{cutout:'60%',plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fE0(ctx.parsed)} (${(ctx.parsed/baseValue*100).toFixed(1)}%)`}}}}}));};
+    const mk=(id,data,extra)=>{const el=byId(id);if(!el)return;if(!chartAvailable()){el.parentElement.innerHTML=`<div style="padding:8px 0">${labels.map((l,i)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:${PALETTE[i%PALETTE.length]};display:inline-block"></span>${esc(l)}</span><b>${fE0(data[i])}</b></div>`).join('')}</div>`;return;}charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:[...labels,'Reste'],datasets:[{data:[...data,extra],backgroundColor:[...labels.map((_,i)=>PALETTE[i%PALETTE.length]),'#3a3f4b'],borderWidth:0}]},options:{cutout:'60%',plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fE0(ctx.parsed)} (${(ctx.parsed/baseValue*100).toFixed(1)}%)`}}}}}));};
     mk('alloc-actual',actualData,otherActual);
     mk('alloc-target',targetData,otherTarget);}
   }
@@ -1366,6 +1378,13 @@ function renderGoals(){
     const projData=years.map(y=>Math.round(proj(y)));
     const investedData=years.map(y=>Math.round(T.val+monthly*12*y));
     const targetTotal=num(g.targetTotal);
+    const goalLabels=years.map(y=>y===0?'Auj.':(y+' an'+(y>1?'s':'')));
+    const dsProj={label:'Projection (avec rendement)',data:projData,borderColor:'#cdb78a',backgroundColor:'rgba(205,183,138,.12)',fill:true,tension:.3,pointRadius:0,borderWidth:2.5};
+    const dsInv={label:'Capital investi (sans rendement)',data:investedData,borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.3,pointRadius:0,borderWidth:1.5};
+    if(!chartAvailable()){
+      chartFallback('goals-chart',[dsProj,dsInv],goalLabels);
+      return;
+    }
     // Année où la projection atteint l'objectif
     let crossYear=-1;
     if(targetTotal>0){for(let y=0;y<=20;y++){if(proj(y)>=targetTotal){crossYear=y;break;}}}
@@ -1374,9 +1393,9 @@ function renderGoals(){
     const muted=dark?'#8b93a4':'#71757e',grid=dark?'rgba(255,255,255,.05)':'rgba(0,0,0,.06)';
     charts.push(new Chart(el.getContext('2d'),{
       type:'line',
-      data:{labels:years.map(y=>y===0?'Auj.':(y+' an'+(y>1?'s':''))),datasets:[
-        {label:'Projection (avec rendement)',data:projData,borderColor:'#cdb78a',backgroundColor:'rgba(205,183,138,.12)',fill:true,tension:.3,pointRadius:0,borderWidth:2.5},
-        {label:'Capital investi (sans rendement)',data:investedData,borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.3,pointRadius:0,borderWidth:1.5},
+      data:{labels:goalLabels,datasets:[
+        dsProj,
+        dsInv,
         ...(targetTotal>0?[{label:'Objectif final',data:years.map(()=>targetTotal),borderColor:muted,borderDash:[6,4],fill:false,pointRadius:0,borderWidth:1.5}]:[]),
         ...(crossYear>=0?[{label:'Objectif atteint',data:crossData,borderColor:'#43d39a',backgroundColor:'#43d39a',pointRadius:7,pointHoverRadius:9,showLine:false,pointStyle:'star'}]:[])
       ]},
@@ -1476,7 +1495,7 @@ function toast(msg){const el=byId('toast');el.textContent=msg;el.classList.add('
 function updateOnline(){byId('odot').style.background=navigator.onLine?'var(--green)':'var(--red)'}
 function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme||'dark');byId('theme-label').textContent=(S.theme||'dark')==='dark'?'Mode clair':'Mode sombre'}
 window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-applyTheme();updateOnline();byId('refresh-meta').textContent=`Dernier refresh : ${ago(S.lastRefresh)} · auto 4h`;renderSpotBar();if(!(S.snapshots||[]).length){createSnapshot(false)}renderDashboard();
+applyTheme();updateOnline();byId('refresh-meta').textContent=`Dernier refresh : ${ago(S.lastRefresh)} · auto 4h`;renderSpotBar();createSnapshot(false);renderDashboard();
 // Chargement live initial (crypto + or) au démarrage, sans bloquer l'affichage
 async function fetchRwaPrices(symbols){
   // Récupère les prix tokenisés (actions/ETF) via CoinGecko, en USD, convertit en EUR
@@ -1518,7 +1537,7 @@ async function fetchFx(){
       S.fx.USD=eur/usd;   // 1 USD = x EUR
       S.fx.CHF=eur/chf;   // 1 CHF = x EUR
       S.fxUpdated=now;
-      save();renderSpotBar();renderCurrent();
+      save();renderSpotBar();if(!uiBusy())renderCurrent();
       return true;
     }
   }catch(e){}
