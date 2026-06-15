@@ -354,6 +354,234 @@ tbody tr:hover td{background:var(--surface2)}
   .decision-title{font-size:23px}
   .bar-row{grid-template-columns:80px 1fr 72px}
 }
+
+/* ════════════════ 15 · COCKPIT V2 — composants de refonte produit ════════════════ */
+.cgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.c4{grid-column:span 4}.c5{grid-column:span 5}.c6{grid-column:span 6}.c7{grid-column:span 7}.c12{grid-column:span 12}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.panel-head .card-title{margin:0}
+
+/* Hero command center : valeur + graphique intégré */
+.hero2{display:grid;grid-template-columns:minmax(280px,2fr) minmax(0,3fr);gap:30px;align-items:stretch}
+.hero2 .hero-side{display:flex;flex-direction:column;min-width:0}
+.hchart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.hchart{height:248px;background:rgba(0,0,0,.14);border:1px solid var(--border);border-radius:var(--r-md);padding:10px}
+[data-theme="light"] .hchart{background:rgba(0,0,0,.03)}
+.hchart canvas{width:100%!important;height:100%!important}
+.hchart-foot{display:flex;gap:8px;margin-top:12px}
+.bsm{padding:7px 12px;font-size:12px}
+.pchip-sub{font-size:9px;opacity:.7;margin-left:3px}
+.warnline{font-size:11px;color:var(--amber);margin-top:6px}
+
+/* Strip système (fiabilité prix) */
+.syschk{display:flex;align-items:center;gap:11px;padding:13px 16px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--border);font-size:13px;color:var(--muted);line-height:1.5}
+.syschk b{color:var(--text);font-weight:600}
+.syschk.warn{border-color:rgba(224,164,88,.4);background:rgba(224,164,88,.06)}
+.syschk.bad{border-color:var(--red);background:var(--red-soft)}
+.syschk-ic{flex-shrink:0;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--surface3);color:var(--accent)}
+.syschk-ic.pos{background:var(--green-soft);color:var(--green)}
+.syschk-ic.neg{background:var(--red-soft);color:var(--red)}
+.syschk code{font-family:var(--font-mono);font-size:11px;background:var(--surface3);padding:1px 6px;border-radius:5px;color:var(--accent2)}
+.syschk a{color:var(--accent);text-decoration:none;font-weight:600;white-space:nowrap;margin-left:auto}
+.syschk a:hover{text-decoration:underline}
+
+/* Strip de stats (4 ou 3 colonnes) */
+.sstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden}
+.sstrip.s3{grid-template-columns:repeat(3,1fr)}
+.ss{padding:16px 18px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:3px}
+.ss:last-child{border-right:none}
+.ss-l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.ss-v{font-family:var(--font-mono);font-size:21px;font-weight:600;color:var(--text);letter-spacing:-.02em}
+.ss-v.pos{color:var(--green)}.ss-v.neg{color:var(--red)}
+.ss-n{font-size:11px;color:var(--faint)}
+.ss-n.pos{color:var(--green)}.ss-n.neg{color:var(--red)}
+
+/* Décision du mois */
+.dec-flex{display:flex;gap:22px;align-items:flex-start;justify-content:space-between}
+.score-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0}
+.score-cap{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:center}
+
+/* Barres comparatives allocation */
+.cmp-list{display:flex;flex-direction:column;gap:14px}
+.cmp{display:grid;grid-template-columns:1fr;gap:6px}
+.cmp-lbl{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.cmp-lbl b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp-lbl span{font-size:11px;color:var(--faint);white-space:nowrap}
+.cmp-track{position:relative;height:11px;background:var(--surface3);border-radius:99px;overflow:hidden}
+.cmp-fill{position:absolute;left:0;top:0;height:100%;background:var(--blue);border-radius:99px;transition:width .5s ease}
+.cmp-fill.of{background:var(--orange)}
+.cmp-tick{position:absolute;top:-2px;width:2px;height:15px;background:var(--text);opacity:.85;border-radius:2px}
+.cmp-meta{display:flex;align-items:center;gap:10px;font-size:11px}
+.cmp-state{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:5px}
+.st-under{background:rgba(79,157,222,.14);color:var(--blue)}
+.st-over{background:rgba(224,164,88,.16);color:var(--orange)}
+.st-ok{background:var(--green-soft);color:var(--green)}
+.cmp-pcts{font-family:var(--font-mono);color:var(--muted)}
+.cmp-delta{margin-left:auto;font-family:var(--font-mono);font-weight:600}
+.d-under{color:var(--blue)}.d-over{color:var(--orange)}
+
+/* Anneau de progression */
+.ring-wrap{position:relative;width:70px;height:70px;flex-shrink:0;display:grid;place-items:center}
+.ring-wrap.big{width:92px;height:92px}
+.ring{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--surface3)}
+.ring-fg{fill:none;stroke:var(--accent);stroke-linecap:round;transition:stroke-dasharray .6s ease}
+.ring-txt{position:absolute;font-family:var(--font-mono);font-weight:600;font-size:17px}
+.ring-wrap.big .ring-txt{font-size:21px}
+.ring-txt small{font-size:11px;opacity:.6}
+
+/* DCA dashboard mini */
+.dca-sum{display:flex;align-items:center;gap:18px;margin-bottom:14px}
+.dca-nums{display:flex;gap:22px;flex-wrap:wrap}
+.dca-nums>div{display:flex;flex-direction:column;gap:2px}
+.dca-nums span{font-size:11px;color:var(--muted)}
+.dca-nums b{font-family:var(--font-mono);font-size:16px;font-weight:600}
+.dca-mini{display:flex;flex-direction:column;gap:2px}
+.dm-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.dm-row:last-child{border-bottom:none}
+.dm-dot{width:18px;height:18px;border-radius:6px;background:var(--surface3);color:var(--green);display:grid;place-items:center;font-size:11px;font-weight:700;flex-shrink:0}
+.dm-dot.ok{background:var(--green-soft)}
+.dm-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-amt{font-family:var(--font-mono);color:var(--muted)}
+.dm-st{font-size:10px;text-transform:uppercase;letter-spacing:.04em;width:40px;text-align:right}
+
+/* Risque & exposition */
+.risk-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;margin-bottom:4px}
+.risk-line b{font-family:var(--font-mono);font-weight:600}
+.xtrack{position:relative;height:8px;background:var(--surface3);border-radius:99px;overflow:hidden;margin:3px 0}
+.xtrack>span{position:absolute;left:0;top:0;height:100%;border-radius:99px;transition:width .5s ease}
+.xtrack>i{position:absolute;top:-3px;width:2px;height:14px;background:var(--red);border-radius:2px}
+.xp-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin:16px 0 8px;position:relative}
+.xrow{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:12.5px}
+.xrow>span:first-child{width:46px;flex-shrink:0;color:var(--muted)}
+.xrow .xtrack{flex:1;margin:0}
+.xrow>b{width:42px;text-align:right;font-family:var(--font-mono)}
+.cash-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.cash-row:last-child{border-bottom:none}
+.cr-n{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cash-row b{font-family:var(--font-mono);font-weight:600}
+
+/* Où va mon argent — 3 colonnes */
+.flow3{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:24px}
+.flow3 .donut-wrap{max-width:128px;margin:0 auto}
+.chart-inner.small2{height:170px}
+
+/* Filtres par classe d'actif (chips) */
+.fchips{display:flex;gap:8px;flex-wrap:wrap}
+.fchip{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:99px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:12.5px;font-weight:500;cursor:pointer;transition:.15s}
+.fchip:hover{border-color:var(--border2);color:var(--text)}
+.fchip.on{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent2)}
+[data-theme="light"] .fchip.on{color:var(--accent)}
+.fchip i{width:8px;height:8px;border-radius:99px;display:inline-block}
+.fchip span{font-family:var(--font-mono);font-size:11px;opacity:.7}
+
+/* Colonne poids du portefeuille */
+.wcell{display:flex;flex-direction:column;gap:4px;align-items:flex-end;min-width:74px}
+.wcell>span{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.wbar{width:74px;height:5px;background:var(--surface3);border-radius:99px;overflow:hidden}
+.wbar>i{display:block;height:100%;border-radius:99px}
+
+/* Chips opération transactions */
+.opchip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:7px;font-size:11px;font-weight:600;letter-spacing:.02em}
+.opchip.buy{background:var(--green-soft);color:var(--green)}
+.opchip.sell{background:var(--red-soft);color:var(--red)}
+
+/* Formulaire en blocs produit */
+.txform .blk{padding:16px 0;border-top:1px solid var(--border)}
+.txform .blk:first-of-type{border-top:none;padding-top:4px}
+.blk-t{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;margin-bottom:12px}
+.bgrid{display:grid;gap:13px}
+.bgrid.b3{grid-template-columns:repeat(3,1fr)}
+.bgrid.b4{grid-template-columns:repeat(4,1fr)}
+.bgrid.b5{grid-template-columns:repeat(5,1fr)}
+.bgrid.b6{grid-template-columns:repeat(6,1fr)}
+.seg{display:inline-flex;background:var(--surface3);border-radius:9px;padding:3px;gap:3px;margin-bottom:13px}
+.seg button{border:none;background:transparent;color:var(--muted);font-family:var(--font-ui);font-size:13px;font-weight:600;padding:7px 22px;border-radius:6px;cursor:pointer;transition:.15s}
+.seg .seg-buy.on{background:var(--green);color:#06140e}
+.seg .seg-sell.on{background:var(--red);color:#1a0606}
+.tx-total{display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding:11px 14px;border:1px dashed var(--border2);border-radius:var(--r-sm);background:var(--surface)}
+.tx-total>span{font-size:12px;color:var(--muted)}
+.tx-total>b{font-family:var(--font-mono);font-size:17px;font-weight:600}
+.vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.txform details.adv summary{cursor:pointer;list-style:none;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:7px}
+.txform details.adv summary::-webkit-details-marker{display:none}
+.txform details.adv summary::before{content:'▸';font-size:10px;transition:.2s}
+.txform details.adv[open] summary::before{transform:rotate(90deg)}
+
+/* DCA hero d'exécution */
+.dcahero{display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap}
+.dh-left{display:flex;align-items:center;gap:20px;min-width:0}
+.dh-main{min-width:0}
+.dh-big{font-family:var(--font-mono);font-size:30px;font-weight:600;letter-spacing:-.02em;margin:2px 0 4px}
+.dh-right{min-width:200px}
+
+/* Checklist DCA */
+.dline{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border)}
+.dline:last-child{border-bottom:none}
+.dline.done{opacity:.78}
+.dl-id{flex:1;min-width:0}
+.dl-id b{font-size:14px}
+.dl-cell{display:flex;flex-direction:column;gap:1px;width:78px;text-align:right}
+.dl-cell>span{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.dl-cell>b{font-family:var(--font-mono);font-size:13px;font-weight:600}
+.dl-st{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:6px;background:var(--surface3);color:var(--muted);width:74px;text-align:center;flex-shrink:0}
+.dl-st.ok{background:var(--green-soft);color:var(--green)}
+
+/* Rééquilibrage allocation */
+.reco{padding:13px 0;border-top:1px solid var(--border)}
+.reco:first-of-type{border-top:none;padding-top:0}
+.reco-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
+.reco-h b{font-size:14px}
+.reco-d{font-size:12.5px;color:var(--muted);line-height:1.5}
+.reco-d b{color:var(--text);font-family:var(--font-mono)}
+
+/* Objectifs */
+.goalhero{display:grid;grid-template-columns:minmax(280px,3fr) minmax(0,2fr);gap:30px;align-items:start}
+.goal-track{height:12px;background:var(--surface3);border-radius:99px;overflow:hidden;margin-top:14px}
+.goal-track>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .6s ease}
+.goal-params{display:flex;flex-direction:column;gap:12px}
+.hrow{display:grid;grid-template-columns:90px 1fr 1.1fr 1.3fr auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}
+.hrow:last-child{border-bottom:none}
+.hrow-y b{font-size:16px;display:block}.hrow-y span{font-size:11px}
+.hrow-proj,.hrow-obj{display:flex;flex-direction:column;gap:2px}
+.hrow-proj>span,.hrow-obj>span{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.hrow-proj>b{font-family:var(--font-mono);font-size:15px;font-weight:600}
+.hrow-cov{display:flex;flex-direction:column;gap:4px}
+.stchip{font-size:11px;font-weight:700;padding:5px 11px;border-radius:7px;white-space:nowrap;text-align:center}
+.stchip.ok{background:var(--green-soft);color:var(--green)}
+.stchip.late{background:rgba(224,164,88,.14);color:var(--orange)}
+
+/* Section header inter-tableaux */
+.shead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:6px 2px -2px}
+
+/* ── Responsive cockpit ── */
+@media(max-width:1180px){
+  .c4{grid-column:span 6}.c5,.c7{grid-column:span 12}
+  .flow3{grid-template-columns:1fr 1fr;gap:18px}
+  .flow3>div:last-child{grid-column:span 2}
+  .hero2{grid-template-columns:1fr}
+  .goalhero{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .cgrid>section{grid-column:span 12!important}
+  .sstrip{grid-template-columns:1fr 1fr}
+  .sstrip .ss:nth-child(2n){border-right:none}
+  .sstrip .ss:nth-child(-n+2){border-bottom:1px solid var(--border)}
+  .sstrip.s3{grid-template-columns:1fr}
+  .sstrip.s3 .ss{border-right:none;border-bottom:1px solid var(--border)}
+  .sstrip.s3 .ss:last-child{border-bottom:none}
+  .bgrid.b3,.bgrid.b4,.bgrid.b5,.bgrid.b6{grid-template-columns:1fr 1fr}
+  .flow3{grid-template-columns:1fr}
+  .flow3>div:last-child{grid-column:span 1}
+  .dec-flex{flex-direction:column-reverse;align-items:stretch}
+  .score-wrap{flex-direction:row;justify-content:center;gap:12px}
+  .dline{flex-wrap:wrap}
+  .dl-cell{width:auto;flex:1}
+  .hrow{grid-template-columns:1fr 1fr;gap:10px}
+  .hrow-cov{grid-column:span 2}
+  .goal-params{gap:10px}
+  .dcahero{gap:18px}
+}
 </style>
 </head>
 <body>
@@ -888,82 +1116,181 @@ function goTab(next){const b=document.querySelector(`.nb[data-tab="${next}"]`);i
 byId('nav').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;document.querySelectorAll('.nb[data-tab]').forEach(x=>x.classList.remove('on'));b.classList.add('on');tab=b.dataset.tab;byId('page-title').textContent=TAB_TITLES[tab];renderCurrent();});
 byId('theme-btn').addEventListener('click',()=>{const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',next);S.theme=next;byId('theme-label').textContent=next==='dark'?'Mode clair':'Mode sombre';save();renderCurrent();});
 function renderSpotBar(){const items=[['BTC','BTC',null],['ETH','ETH',null],['SOL','SOL',null],['MSCI World (AO00)','AO00','AO00'],['S&P 500 (ESEE)','ESEE','ESEE'],['Or/oz','XAU',null]];byId('spotbar').innerHTML=items.map(([l,sym,editSym])=>{const p=priceStatus(sym);const click=editSym?`onclick="editPrice('${editSym}',${p.price?num(p.price):0})" style="cursor:pointer" title="Cliquer pour saisir le prix"`:'';return`<div class="spot-item" ${click}><span class="spot-label">${l}</span><span class="spot-price">${p.price!=null?fM(p.price,p.cur||'EUR'):'—'}</span><span class="spot-dot${p.status==='live'?' live':''}"></span></div>`}).join('')+`<span class="spot-hint">● live · manuel si non chargé</span>`}
+// ── Helpers cockpit v2 (additifs) ────────────────────────────────────────────
+function ringSvg(pct,size,stroke){size=size||70;stroke=stroke||6;const r=(size-stroke)/2,c=2*Math.PI*r,p=clamp(num(pct),0,100),dash=c*p/100;
+  return`<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle class="ring-bg" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}"/><circle class="ring-fg" cx="${size/2}" cy="${size/2}" r="${r}" stroke-width="${stroke}" stroke-dasharray="${dash.toFixed(2)} ${c.toFixed(2)}"/></svg>`;}
+function setTxOp(op){const sel=byId('fo');if(sel)sel.value=op;const b=byId('seg-buy'),s=byId('seg-sell');if(b)b.classList.toggle('on',op==='buy');if(s)s.classList.toggle('on',op==='sell');}
+function txLiveTotal(){const el=byId('tx-total');if(!el)return;const q=num(byId('fq')?.value),p=num(byId('fpr')?.value),f=num(byId('ff')?.value)+num(byId('ffx')?.value)+num(byId('fsp')?.value)+num(byId('fbr')?.value);const cur=byId('fc')?.value||'EUR';el.innerHTML=q>0&&p>0?`${fM(q*p,cur)}${f>0?` <span class="muted">+ ${fM(f,cur)} frais</span>`:''}`:'—';}
+function cmpRowsHtml(rows){
+  if(!rows.length)return'<div class="empty">Aucune cible définie — ajoute tes poches (WPEA, ESEE, crypto…).</div>';
+  return rows.map(r=>{
+    const cur=clamp(r.currentPct,0,100),tgt=clamp(r.targetPct,0,100);
+    const under=r.diff>50,over=r.diff<-50;
+    const st=under?['sous','st-under']:over?['sur','st-over']:['ok','st-ok'];
+    const delta=r.currentPct-r.targetPct;
+    return`<div class="cmp">
+      <div class="cmp-lbl"><b title="${esc(r.label)}">${esc(r.label)}</b><span>${esc(r.rule)}</span></div>
+      <div class="cmp-track" title="Actuel ${r.currentPct.toFixed(1)} % · cible ${r.targetPct.toFixed(0)} %"><span class="cmp-fill${over?' of':''}" style="width:${cur}%"></span><i class="cmp-tick" style="left:${tgt}%"></i></div>
+      <div class="cmp-meta"><span class="cmp-state ${st[1]}">${st[0]}</span><span class="cmp-pcts">${r.currentPct.toFixed(1)} / ${r.targetPct.toFixed(0)} %</span><span class="cmp-delta ${delta>0?'d-over':'d-under'}">${delta>=0?'+':''}${delta.toFixed(1)} pts</span></div>
+    </div>`;}).join('');
+}
+
 function renderDashboardCockpit(){
   const pos=positions(),T=totals(pos),up=T.perf>=0,items=lineItems(),bt=byType(items),ae=Object.entries(bt).filter(([,v])=>v>0),at=T.val||1,risks=riskMetrics(),plan=monthlyPlanSummary();
   const decision=nextDecision(plan),health=dashboardHealth(risks,plan),rows=allocationRows().sort((a,b)=>b.under-a.under||b.absDiff-a.absDiff),actions=dashboardActions(risks,plan,decision);
-  const periods=[['1m','1 M'],['3m','3 M'],['6m','6 M'],['1a','1 A'],['tout','Tout']];
+  const periods=[['1m','1M'],['3m','3M'],['6m','6M'],['1a','1A'],['tout','Tout']];
   const planPct=plan.planned?clamp(plan.actual/plan.planned*100,0,100):0,cryptoPct=risks.strategyPct(risks.strategyTypes.crypto),reserveProgress=reservePct(risks);
+  const fi=prixFiabilite(pos);
+  const haveHist=(S.snapshots||[]).length>=2;
+  const cashAcc=(S.accounts||[]).map(a=>({a,v:accountValue(a)})).filter(x=>accountRiskType(x.a)==='cash');
+  const cashTotal=cashAcc.reduce((s,x)=>s+x.v,0);
+  const reserveTarget=num(S.settings.securityReserveTarget);
+  const curTot=Object.values(risks.cur).reduce((s,v)=>s+v,0)||1;
+  const curRows=[['EUR',risks.cur.EUR,'var(--accent)'],['USD',risks.cur.USD,'var(--blue)'],['CHF',risks.cur.CHF,'var(--violet)'],['Autres',risks.cur.OTHER,'var(--cash)']].filter(([,v])=>v>0);
+  const dcaMini=plan.lines.slice(0,4);
+  const cryptoSeuil=num(S.settings.cryptoThreshold)||1;
+  const top1=risks.largest;
+  const mkt=byType(strategyItems()),me=Object.entries(mkt).filter(([,v])=>v>0),mtot=me.reduce((s,[,v])=>s+v,0)||1;
+  const fiSyms=[...fi.missing_syms,...fi.stale_syms];
+
   byId('content').innerHTML=`<div class="stack">
-    <div class="card hero"><div class="hero-top"><div><div class="hero-label">Patrimoine total</div><div class="hero-val">${fE(T.val)}</div><div class="pill ${up?'up':'dn'}">${up?'▲':'▼'} ${fE(T.perf)} · ${fP(T.perfPct)}</div>${T.missingPrices>0?`<div style="font-size:10px;color:var(--amber,#e0a458);margin-top:3px">⚠ ${T.missingPrices} prix manquant${T.missingPrices>1?'s':''} — latent sous-estimé</div>`:''}</div><div class="hero-stats"><div class="hs-item"><span class="hs-lbl">Portefeuille piloté</span><span class="hs-val">${fE(risks.strategyValue)}</span></div><div class="hs-item"><span class="hs-lbl">Épargne gelée</span><span class="hs-val">${fE(risks.passiveValue)}</span></div><div class="hs-item"><span class="hs-lbl">Réserve sécurité</span><span class="hs-val">${fE(risks.reserve)}</span></div><div class="hs-item"><span class="hs-lbl">Score plan</span><span class="hs-val">${health.score}/100</span></div></div></div><div class="fa" style="margin-top:16px"><button class="btn btn-p" onclick="goTab('dca')">Plan mensuel</button><button class="btn btn-g" onclick="goTab('allocation')">Allocation cible</button><button class="btn btn-g" onclick="createSnapshot(true);renderCurrent()">Snapshot maintenant</button></div></div>
-    <div class="decision-grid">
-      <div class="decision-card"><div class="decision-head"><div><div class="decision-label">Cockpit décision</div><div class="decision-title">${esc(decision.title)}</div><div class="decision-sub">${esc(decision.detail)} Basé sur le portefeuille piloté : PEA, CTO, crypto et cash disponible. Assurance-vie, 3e pilier et PEL restent suivis mais hors recommandations.</div></div><div class="score-badge">${health.score}</div></div>${actionListHtml(actions)}</div>
-      <div class="decision-card"><div class="decision-head"><div><div class="decision-label">Allocation pilotée</div><div class="decision-title" style="font-size:23px">${fE(risks.strategyValue)}</div><div class="decision-sub">Barre pleine = actuel. Voile bleu = cible. La recommandation cible la poche la plus en retard.</div></div><span class="badge ${health.score>=70?'b-live':'b-manual'}">${esc(health.label)}</span></div>${allocationBarsHtml(rows)}</div>
-    </div>
-    <div class="quick-band">
-      <div class="quick-card"><span>Plan mensuel</span><b>${fE(plan.actual)} / ${fE(plan.planned)}</b><div class="progress"><span style="width:${planPct}%"></span></div><div class="kpi-note">${fE(plan.remaining)} restant · ${plan.mk}</div></div>
-      <div class="quick-card"><span>Réserve sécurité</span><b>${fE(risks.reserve)} / ${fE(S.settings.securityReserveTarget)}</b><div class="progress"><span style="width:${reserveProgress}%"></span></div><div class="kpi-note">${reserveProgress.toFixed(0)} % de la cible</div></div>
-      <div class="quick-card"><span>Crypto pilotée</span><b>${cryptoPct.toFixed(1)} %</b><div class="progress"><span style="width:${clamp(cryptoPct/Math.max(1,num(S.settings.cryptoThreshold))*100,0,100)}%"></span></div><div class="kpi-note">Seuil : ${S.settings.cryptoThreshold} %</div></div>
-    </div>
-    <div class="g4">
-      <div class="card kpi-card"><div class="kpi-lbl">Capital injecté marché</div><div class="kpi-val">${fE(T.marketInv)}</div><div class="kpi-note">ETF · actions · crypto · frais inclus</div></div>
-      <div class="card kpi-card"><div class="kpi-lbl">Latent (marché)</div><div class="kpi-val ${T.unrealized>=0?'pos':'neg'}">${fE(T.unrealized)}</div><div class="kpi-note">${fP(T.perfPct)} sur capital injecté</div></div>
-      <div class="card kpi-card"><div class="kpi-lbl">Réalisé + revenus</div><div class="kpi-val ${(T.realized+T.income)>=0?'pos':'neg'}">${fE(T.realized+T.income)}</div></div>
-      <div class="card kpi-card"><div class="kpi-lbl">Passif déclaré</div><div class="kpi-val">${fE(T.passiveVal)}</div><div class="kpi-note">AV · PEL · 3e pilier · réserve · comptes</div></div>
-    </div>
-    ${(()=>{
-      const fi=prixFiabilite(pos);
-      const icon=fi.ok?'✓':fi.score>=70?'⚠':'✕';
-      const bg=fi.ok?'transparent':fi.score>=70?'rgba(224,164,88,0.10)':'rgba(224,88,88,0.10)';
-      const border=fi.ok?'var(--border)':fi.score>=70?'#e0a458':'#e05858';
-      const details=[];
-      if(fi.missing>0)details.push(`<b>${fi.missing}</b> prix manquant${fi.missing>1?'s':''} (valeur = PRU — trompeuse)`);
-      if(fi.stale>0)details.push(`<b>${fi.stale}</b> prix daté${fi.stale>1?'s':''} >7j`);
-      const syms=[...fi.missing_syms,...fi.stale_syms];
-      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;border-radius:8px;border:1px solid ${border};background:${bg};font-size:12px">
-        <span style="display:flex;align-items:center;gap:8px">
-          <span style="font-weight:700;color:${fi.color}">${icon}</span>
-          <span><b>Prix fiables :</b> ${fi.fiables}/${fi.total} actifs${details.length?' · '+details.join(' · '):''}</span>
-          ${syms.length?`<span class="muted">(${syms.slice(0,5).map(s=>`<code style="font-size:10px;background:var(--surface2);padding:1px 4px;border-radius:3px">${esc(s)}</code>`).join(' ')}${syms.length>5?' …':''})</span>`:''}
-        </span>
-        ${!fi.ok?`<a href="#" onclick="goTab('portfolio');return false" style="white-space:nowrap;color:var(--accent);font-size:11px">Mettre à jour →</a>`:''}
-      </div>`;
-    })()}
-    <div class="card" style="padding-bottom:10px">
-      <div class="toolbar" style="margin-bottom:10px">
-        <div><div class="card-title" style="margin:0">Historique</div><div class="hint">${histRangeLabel()}</div></div>
-        <div class="fa">
-          <div class="period-bar" style="margin:0">${periods.map(([id,l])=>{const p=perfPeriod(id);return`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}${p?` <span style='font-size:10px;opacity:.7'>${fP(p.pct)}</span>`:''}</button>`}).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">Perso</button></div>
-          <button class="btn btn-g" onclick="createSnapshot(true);renderDashboard()">Snapshot maintenant</button>
-          <button class="btn btn-d" onclick="resetHistory()">Vider</button>
+
+    <section class="card hero hero2">
+      <div class="hero-main">
+        <div class="hero-label">Patrimoine total</div>
+        <div class="hero-val">${fE(T.val)}</div>
+        <div class="pill ${up?'up':'dn'}">${up?'▲':'▼'} ${fE(T.perf)} · ${fP(T.perfPct)}</div>
+        ${T.missingPrices>0?`<div class="warnline">⚠ ${T.missingPrices} prix manquant${T.missingPrices>1?'s':''} — latent sous-estimé</div>`:''}
+        <div class="hero-stats">
+          <div class="hs-item"><span class="hs-lbl">Portefeuille piloté</span><span class="hs-val">${fE(risks.strategyValue)}</span></div>
+          <div class="hs-item"><span class="hs-lbl">Épargne gelée</span><span class="hs-val">${fE(risks.passiveValue)}</span></div>
+          <div class="hs-item"><span class="hs-lbl">Réserve sécurité</span><span class="hs-val">${fE(risks.reserve)}</span></div>
+          <div class="hs-item"><span class="hs-lbl">Santé du plan</span><span class="hs-val">${health.score}<span class="muted">/100</span></span></div>
+        </div>
+        <div class="fa" style="margin-top:20px">
+          <button class="btn btn-p" onclick="goTab('dca')">Exécuter le plan</button>
+          <button class="btn btn-g" onclick="goTab('allocation')">Allocation cible</button>
         </div>
       </div>
-      ${activePeriod==='custom'?`<div class="fa" style="margin:0 0 10px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}
+      <div class="hero-side">
+        <div class="hchart-head">
+          <div><div class="card-title" style="margin:0">Valeur marché vs capital injecté</div><div class="hint">${histRangeLabel()}</div></div>
+          <div class="period-bar" style="margin:0">${periods.map(([id,l])=>{const p=perfPeriod(id);return`<button class="pchip${activePeriod===id?' on':''}" onclick="activePeriod='${id}';renderDashboard()">${l}${p?` <span class='pchip-sub'>${fP(p.pct)}</span>`:''}</button>`}).join('')}<button class="pchip${activePeriod==='custom'?' on':''}" onclick="activePeriod='custom';renderDashboard()">Perso</button></div>
+        </div>
+        ${activePeriod==='custom'?`<div class="fa" style="margin-bottom:10px"><div class="fl"><label>Du</label><input type="date" value="${S.histFrom||''}" onchange="S.histFrom=this.value;save();renderDashboard()"></div><div class="fl"><label>Au</label><input type="date" value="${S.histTo||''}" onchange="S.histTo=this.value;save();renderDashboard()"></div></div>`:''}
+        <div class="chart-sub" style="margin:0 0 8px">Violet = valeur de marché · bleu (escalier) = capital injecté. Source : snapshots.</div>
+        <div class="chart-inner hchart">${haveHist?'<canvas id="hist-valeur"></canvas>':`<div class="chart-empty">Pas encore d'historique — crée un premier snapshot pour démarrer la courbe.</div>`}</div>
+        <div class="hchart-foot"><button class="btn btn-g bsm" onclick="createSnapshot(true);renderDashboard()">Snapshot maintenant</button><button class="btn btn-d bsm" onclick="resetHistory()">Vider l'historique</button></div>
+      </div>
+    </section>
+
+    <div class="syschk ${fi.ok?'':fi.score>=70?'warn':'bad'}">
+      <span class="syschk-ic ${fi.ok?'pos':fi.score>=70?'':'neg'}">${fi.ok?'✓':fi.score>=70?'⚠':'✕'}</span>
+      <span><b>Prix fiables :</b> ${fi.fiables}/${fi.total} actifs${fi.missing>0?` · <b>${fi.missing}</b> manquant${fi.missing>1?'s':''} (valeur = PRU)`:''}${fi.stale>0?` · <b>${fi.stale}</b> daté${fi.stale>1?'s':''} >7j`:''} ${fiSyms.slice(0,5).map(s=>`<code>${esc(s)}</code>`).join(' ')}${fiSyms.length>5?' …':''}</span>
+      ${!fi.ok?`<a href="#" onclick="goTab('portfolio');return false">Mettre à jour →</a>`:''}
     </div>
-    <div class="card">
-      <div class="card-title" style="margin-bottom:4px">Capital injecté</div>
-      <div class="chart-sub">Escalier exact depuis tes transactions — chaque marche = un achat ou une vente. Pas de prix de marché, pas de snapshot : 100 % fiable.</div>
-      <div class="chart-inner"><canvas id="hist-capital"></canvas></div>
+
+    <div class="sstrip">
+      <div class="ss"><span class="ss-l">Capital injecté marché</span><span class="ss-v">${fE(T.marketInv)}</span><span class="ss-n">ETF · actions · crypto · frais inclus</span></div>
+      <div class="ss"><span class="ss-l">Latent (marché)</span><span class="ss-v ${T.unrealized>=0?'pos':'neg'}">${fE(T.unrealized)}</span><span class="ss-n">${fP(T.perfPct)} sur capital injecté</span></div>
+      <div class="ss"><span class="ss-l">Réalisé + revenus</span><span class="ss-v ${(T.realized+T.income)>=0?'pos':'neg'}">${fE(T.realized+T.income)}</span><span class="ss-n">ventes nettes + revenus passifs</span></div>
+      <div class="ss"><span class="ss-l">Passif déclaré</span><span class="ss-v">${fE(T.passiveVal)}</span><span class="ss-n">AV · PEL · 3e pilier · comptes</span></div>
     </div>
-    <div class="card">
-      <div class="card-title" style="margin-bottom:4px">Valeur marché vs capital injecté</div>
-      <div class="chart-sub">Violet = valeur de marché (snapshot.marketVal). Bleu escalier = capital injecté (snapshot.invested). Même période que le filtre ci-dessus. Les snapshots avec capital incohérent (ancienne logique) sont exclus de la courbe bleue.</div>
-      <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de snapshots.</div>':'<canvas id="hist-valeur"></canvas>'}</div>
+
+    <div class="cgrid">
+
+      <section class="card c7">
+        <div class="panel-head"><div class="card-title" style="margin:0">Décision du mois</div><span class="badge ${health.score>=70?'b-live':'b-manual'}">${esc(health.label)}</span></div>
+        <div class="dec-flex">
+          <div style="min-width:0">
+            <div class="decision-title">${esc(decision.title)}</div>
+            <div class="decision-sub">${esc(decision.detail)}</div>
+            <div class="decision-sub" style="margin-top:6px">Basé sur le portefeuille piloté (PEA, CTO, crypto, cash disponible). Assurance-vie, PEL et 3e pilier restent suivis mais hors recommandations.</div>
+            <div class="fa" style="margin-top:16px"><button class="btn btn-p" onclick="goTab('dca')">Exécuter</button><button class="btn btn-g" onclick="goTab('allocation')">Voir les cibles</button></div>
+          </div>
+          <div class="score-wrap"><div class="score-badge">${health.score}</div><span class="score-cap">santé du plan</span></div>
+        </div>
+      </section>
+
+      <section class="card c5">
+        <div class="card-title">Actions prioritaires</div>
+        ${actionListHtml(actions)}
+      </section>
+
+      <section class="card c7">
+        <div class="panel-head"><div class="card-title" style="margin:0">Allocation actuelle vs cible</div><span class="hint">Base pilotée : ${fE(risks.strategyValue)}</span></div>
+        <div class="cmp-list">${cmpRowsHtml(rows)}</div>
+        <div class="note">Trait bleu = cible. La décision du mois vise la poche la plus en retard.</div>
+      </section>
+
+      <section class="card c5">
+        <div class="panel-head"><div class="card-title" style="margin:0">DCA à exécuter — ${plan.mk}</div></div>
+        <div class="dca-sum">
+          <div class="ring-wrap">${ringSvg(planPct,70,6)}<span class="ring-txt">${planPct.toFixed(0)}<small>%</small></span></div>
+          <div class="dca-nums">
+            <div><span>Prévu</span><b>${fE(plan.planned)}</b></div>
+            <div><span>Exécuté</span><b class="pos">${fE(plan.actual)}</b></div>
+            <div><span>Reste</span><b>${fE(plan.remaining)}</b></div>
+          </div>
+        </div>
+        ${dcaMini.length?`<div class="dca-mini">${dcaMini.map(l=>{const ex=plan.done(l.id);return`<div class="dm-row"><span class="dm-dot${ex?' ok':''}">${ex?'✓':''}</span><span class="dm-name">${esc(l.name||l.sym)}</span><span class="dm-amt">${fE0(l.plannedAmt)}</span><span class="dm-st ${ex?'pos':'muted'}">${ex?'fait':'à faire'}</span></div>`}).join('')}${plan.lines.length>4?`<div class="hint" style="margin-top:8px">+ ${plan.lines.length-4} autre${plan.lines.length-4>1?'s':''} ligne${plan.lines.length-4>1?'s':''}</div>`:''}</div>`:'<div class="empty">Aucune ligne mensuelle active — ajoute ta première ligne DCA.</div>'}
+        <div class="fa" style="margin-top:14px"><button class="btn btn-p" onclick="goTab('dca')">Ouvrir le plan</button></div>
+      </section>
+
+      <section class="card c6">
+        <div class="card-title">Risque & exposition</div>
+        <div class="risk-line"><span>Crypto pilotée <span class="muted">· seuil ${S.settings.cryptoThreshold} %</span></span><b class="${cryptoPct>cryptoSeuil?'neg':''}">${cryptoPct.toFixed(1)} %</b></div>
+        <div class="xtrack"><span style="width:${clamp(cryptoPct/Math.max(cryptoSeuil*1.4,1)*100,0,100)}%;background:${cryptoPct>cryptoSeuil?'var(--red)':'var(--blue)'}"></span><i style="left:${clamp(cryptoSeuil/Math.max(cryptoSeuil*1.4,1)*100,0,100)}%"></i></div>
+        <div class="risk-line" style="margin-top:14px"><span>Top 3 du patrimoine</span><b>${risks.top3Pct.toFixed(1)} %</b></div>
+        ${top1?`<div class="hint">Plus grosse ligne : ${esc(top1.name)} (${risks.pct(top1.value).toFixed(1)} % du total)</div>`:''}
+        <div class="xp-title">Exposition économique par devise</div>
+        ${curRows.map(([l,v,c])=>`<div class="xrow"><span>${l}</span><div class="xtrack"><span style="width:${(v/curTot*100).toFixed(1)}%;background:${c}"></span></div><b>${(v/curTot*100).toFixed(0)} %</b></div>`).join('')}
+        ${risks.alerts.length?`<div class="xp-title">Alertes</div>${risks.alerts.map(a=>`<div class="alert-row">⚠ <span>${esc(a)}</span></div>`).join('')}`:'<div class="xp-title">Alertes</div><div class="hint">Aucune alerte selon tes seuils actuels.</div>'}
+      </section>
+
+      <section class="card c6">
+        <div class="card-title">Cash & réserve de sécurité</div>
+        <div class="risk-line"><span>Réserve de sécurité</span><b>${fE(risks.reserve)}${reserveTarget?` <span class="muted">/ ${fE0(reserveTarget)}</span>`:''}</b></div>
+        <div class="progress" style="margin-top:6px"><span style="width:${reserveProgress}%"></span></div>
+        <div class="hint" style="margin-top:6px">${reserveTarget?reserveProgress.toFixed(0)+' % de la cible — à garder séparée des investissements.':'Aucune cible de réserve définie.'}</div>
+        <div class="xp-title">Cash disponible — ${fE(cashTotal)}</div>
+        ${cashAcc.length?cashAcc.sort((a,b)=>b.v-a.v).slice(0,5).map(x=>`<div class="cash-row"><span class="cr-n">${esc(x.a.name)}</span><span class="badge b-account">${ACCOUNT_TYPES[x.a.type]||x.a.type}</span><b>${fE(x.v)}</b></div>`).join(''):'<div class="hint">Aucun compte cash déclaré dans Portefeuille.</div>'}
+      </section>
+
+      <section class="card c12">
+        <div class="panel-head"><div class="card-title" style="margin:0">Où va mon argent</div><span class="hint">composition globale · composition pilotée · flux réellement injecté</span></div>
+        <div class="flow3">
+          <div>
+            <div class="xp-title" style="margin-top:0">Patrimoine global</div>
+            ${ae.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-chart"></canvas></div><div class="legend">${ae.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><span class="muted">${(v/at*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<div class="hint">Aucune donnée.</div>'}
+          </div>
+          <div>
+            <div class="xp-title" style="margin-top:0">Capital marché piloté</div>
+            ${me.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-market"></canvas></div><div class="legend">${me.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||k}</span><span class="muted">${(v/mtot*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<div class="hint">Aucun actif de marché.</div>'}
+          </div>
+          <div>
+            <div class="xp-title" style="margin-top:0">Capital injecté — flux exact</div>
+            <div class="chart-inner small2"><canvas id="hist-capital"></canvas></div>
+            <div class="hint" style="margin-top:9px">Escalier reconstruit depuis tes transactions : achats frais inclus, ventes au coût moyen. 100 % fiable, sans prix de marché.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card c6">
+        <div class="card-title">Gain / perte latent</div>
+        <div class="chart-sub">Lecture directe des snapshots. Vert = gain, rouge = perte, ligne zéro = seuil de rentabilité.</div>
+        <div class="chart-inner">${haveHist?'<canvas id="hist-pl"></canvas>':'<div class="chart-empty">Pas assez de snapshots — crée-en un, puis un autre plus tard.</div>'}</div>
+      </section>
+
+      <section class="card c6">
+        <div class="card-title">Évolution par catégorie</div>
+        <div class="chart-sub">Valeur de chaque poche à chaque snapshot. Clique la légende pour isoler une courbe.</div>
+        <div class="chart-inner">${haveHist?'<canvas id="hist-categories"></canvas>':'<div class="chart-empty">Pas assez de données — l\'historique se construit snapshot après snapshot.</div>'}</div>
+      </section>
+
     </div>
-    <div class="card">
-      <div class="card-title" style="margin-bottom:4px">Gain / Perte latent</div>
-      <div class="chart-sub">Valeur de snapshot.unrealized — directement lu, sans recalcul. Vert = en gain, rouge = en perte. Ligne zéro = seuil de rentabilité.</div>
-      <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de snapshots.</div>':'<canvas id="hist-pl"></canvas>'}</div>
-    </div>
-    <div class="card">
-      <div class="card-title" style="margin-bottom:4px">Évolution par catégorie</div>
-      <div class="chart-sub">snapshot.allocation — valeur de chaque poche à chaque snapshot. Cliquer sur la légende pour masquer/afficher une courbe.</div>
-      <div class="chart-inner">${(S.snapshots||[]).length<2?'<div class="chart-empty">Pas assez de données.</div>':'<canvas id="hist-categories"></canvas>'}</div>
-    </div>
-    <div class="g2"><div class="card"><div class="card-title">Allocation — patrimoine global</div>${ae.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-chart"></canvas></div><div class="legend">${ae.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><span class="muted">${(v/at*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucune donnée.</p>'}</div>
-    <div class="card"><div class="card-title">Allocation — capital marché</div>${(()=>{const mkt=byType(strategyItems());const me=Object.entries(mkt).filter(([,v])=>v>0);const mt=me.reduce((s,[,v])=>s+v,0)||1;return me.length?`<div class="alloc-wrap"><div class="donut-wrap"><canvas id="donut-market"></canvas></div><div class="legend">${me.map(([k,v])=>`<div class="leg-row"><div class="leg-dot" style="background:${COLORS[k]||'#888'}"></div><span>${TYPES[k]||k}</span><span class="muted">${(v/mt*100).toFixed(1)}%</span></div>`).join('')}</div></div>`:'<p class="muted">Aucun actif de marché.</p>';})()}</div></div>
-    <div class="card"><div class="card-title">Risques</div>${risks.alerts.length?risks.alerts.map(a=>`<div class="alert-row">⚠ <span>${esc(a)}</span></div>`).join(''):'<div class="empty">Aucune alerte selon tes seuils actuels.</div>'}<div class="note">Crypto pilotée ${risks.strategyPct(risks.strategyTypes.crypto).toFixed(1)} % · Top 3 patrimoine ${risks.top3Pct.toFixed(1)} % · USD économique ${risks.pct(risks.cur.USD).toFixed(1)} % · CHF ${risks.pct(risks.cur.CHF).toFixed(1)} %</div></div>
   </div>`;
-  drawHistoryChart();drawDonut(ae,'donut-chart');{const mkt=byType(strategyItems());const me=Object.entries(mkt).filter(([,v])=>v>0);drawDonut(me,'donut-market');}
+  drawHistoryChart();drawDonut(ae,'donut-chart');drawDonut(me,'donut-market');
 }
 function renderDashboard(){return renderDashboardCockpit();}
 
@@ -1166,24 +1493,42 @@ function drawHistoryChart(){
 }
 
 function drawDonut(ae,canvasId='donut-chart'){const el=byId(canvasId);if(!el||!ae.length)return;if(!chartAvailable()){el.parentElement.innerHTML=`<div style="padding:8px 0">${ae.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:${COLORS[k]||'#888'};display:inline-block"></span>${TYPES[k]||ACCOUNT_TYPES[k]||k}</span><b>${fE(v)}</b></div>`).join('')}</div>`;return;}charts.push(new Chart(el.getContext('2d'),{type:'doughnut',data:{labels:ae.map(([k])=>TYPES[k]||ACCOUNT_TYPES[k]||k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ae.map(([k])=>COLORS[k]||'#888'),borderWidth:0}]},options:{cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fE(c.parsed)}`}}}}}));}
+let pfTypeFilter='all';
 function renderPortfolio(){
-  let pos=positions();
-  const T=totals(pos);
-  // Recherche
+  const all=positions();
+  const T=totals(all);
+  const invSum=all.reduce((s,p)=>s+p.inv,0),valSum=all.reduce((s,p)=>s+p.val,0),plSum=all.reduce((s,p)=>s+p.pl,0);
+  const tShares={};all.forEach(p=>tShares[p.type]=(tShares[p.type]||0)+p.val);
+  const typeList=Object.entries(tShares).sort((a,b)=>b[1]-a[1]);
+  const dom=typeList[0];
+  let pos=all;
+  if(pfTypeFilter!=='all')pos=pos.filter(p=>p.type===pfTypeFilter);
   if(pfSearch){const q=pfSearch.toLowerCase();pos=pos.filter(p=>String(p.name).toLowerCase().includes(q)||String(p.sym).toLowerCase().includes(q)||String(p.envelope).toLowerCase().includes(q));}
-  // Tri
   const sc=pfSort.col,sd=pfSort.dir;
   pos=[...pos].sort((a,b)=>{let va,vb;switch(sc){case'name':va=a.name;vb=b.name;return sd*String(va).localeCompare(String(vb));case'qty':va=a.qty;vb=b.qty;break;case'avg':va=a.avg;vb=b.avg;break;case'inv':va=a.inv;vb=b.inv;break;case'pl':va=a.pl;vb=b.pl;break;default:va=a.val;vb=b.val;}return sd*((va||0)-(vb||0));});
+  const maxW=Math.max(...all.map(p=>p.val),1);
   const arrow=col=>pfSort.col===col?(pfSort.dir<0?' ↓':' ↑'):'';
   const th=(col,label,cls='')=>`<th class="${cls}" style="cursor:pointer;user-select:none" onclick="sortPf('${col}')">${label}${arrow(col)}</th>`;
 
   byId('content').innerHTML=`<div class="stack">
-    <div class="toolbar"><div class="fa">
-      <button class="btn btn-p" onclick="showAccountForm()">Ajouter compte / enveloppe</button>
-      <button class="btn btn-g" onclick="showAssetForm()">Ajouter actif personnalisé</button>
-    </div><div class="fa"><input type="text" placeholder="Rechercher un actif…" value="${esc(pfSearch)}" oninput="pfSearch=this.value;renderPortfolio()" style="min-width:200px"></div></div>
+    <div class="sstrip">
+      <div class="ss"><span class="ss-l">Valeur investissements</span><span class="ss-v">${fE(valSum)}</span><span class="ss-n">${all.length} position${all.length>1?'s':''} de marché</span></div>
+      <div class="ss"><span class="ss-l">Capital investi</span><span class="ss-v">${fE(invSum)}</span><span class="ss-n">frais inclus</span></div>
+      <div class="ss"><span class="ss-l">Performance latente</span><span class="ss-v ${plSum>=0?'pos':'neg'}">${fE(plSum)}</span><span class="ss-n ${plSum>=0?'pos':'neg'}">${invSum>0?fP(plSum/invSum*100):'—'}</span></div>
+      <div class="ss"><span class="ss-l">Exposition dominante</span><span class="ss-v">${dom?(TYPES[dom[0]]||dom[0]):'—'}</span><span class="ss-n">${dom&&valSum?(dom[1]/valSum*100).toFixed(1)+' % des investissements':'aucune position'}</span></div>
+    </div>
+    <div class="toolbar">
+      <div class="fchips">
+        <button class="fchip${pfTypeFilter==='all'?' on':''}" onclick="pfTypeFilter='all';renderPortfolio()">Tous <span>${all.length}</span></button>
+        ${typeList.map(([k])=>`<button class="fchip${pfTypeFilter===k?' on':''}" onclick="pfTypeFilter='${k}';renderPortfolio()"><i style="background:${COLORS[k]||'#888'}"></i>${TYPES[k]||k} <span>${all.filter(p=>p.type===k).length}</span></button>`).join('')}
+      </div>
+      <div class="fa">
+        <input type="text" placeholder="Rechercher un actif…" value="${esc(pfSearch)}" oninput="pfSearch=this.value;renderPortfolio()" style="min-width:210px">
+        <button class="btn btn-g" onclick="showAccountForm()">+ Compte</button>
+        <button class="btn btn-g" onclick="showAssetForm()">+ Actif perso</button>
+      </div>
+    </div>
     <div id="account-form"></div><div id="asset-form"></div>
-    <div class="section-title">Investissements (${pos.length})</div>
     <div class="card flush"><div class="tbl-wrap"><table>
       <thead><tr>${th('name','Actif','l')}${th('qty','Qté')}${th('avg','PRU')}<th>Prix actuel</th>${th('inv','Investi')}${th('val','Valeur')}${th('pl','+/- latent')}<th>Poids</th></tr></thead>
       <tbody>${pos.length?pos.map(p=>{
@@ -1198,21 +1543,22 @@ function renderPortfolio(){
         const plCell=p.plPct==null
           ?`<span class="muted" style="font-size:12px">— prix manquant</span>`
           :`<span class="${p.pl>=0?'pos':'neg'}">${fE(p.pl)}</span><div class="sub-pct ${p.pl>=0?'pos':'neg'}">${fP(p.plPct)}</div>`;
+        const w=p.stalePRU?0:(p.val/(T.val||1)*100);
         return`<tr>
-        <td class="l"><div class="asset-name">${esc(p.name)} <span class="badge b-${p.type}">${TYPES[p.type]||p.type}</span></div><div class="asset-sub">${esc(p.sym)} · ${esc(p.envelope)} · ${esc(p.platform)}</div></td>
+        <td class="l" style="box-shadow:inset 3px 0 0 ${COLORS[p.type]||'#888'}"><div class="asset-name">${esc(p.name)} <span class="badge b-${p.type}">${TYPES[p.type]||p.type}</span></div><div class="asset-sub">${esc(p.sym)} · ${esc(p.envelope)} · ${esc(p.platform)}</div></td>
         <td>${fN(p.qty)}</td><td>${fM(p.avg,p.cur)}</td>
         <td>${priceCell}</td>
         <td>${fE(p.inv)}</td><td>${valCell}</td>
         <td>${plCell}</td>
-        <td>${p.stalePRU?'—':(p.val/(T.val||1)*100).toFixed(1)+'%'}</td>
-      </tr>`;}).join(''):`<tr><td colspan="8" class="empty">${pfSearch?'Aucun résultat pour « '+esc(pfSearch)+' »':'Aucune position.'}</td></tr>`}</tbody>
+        <td>${p.stalePRU?'—':`<div class="wcell"><span>${w.toFixed(1)}%</span><div class="wbar"><i style="width:${clamp(p.val/maxW*100,0,100)}%;background:${COLORS[p.type]||'var(--accent)'}"></i></div></div>`}</td>
+      </tr>`;}).join(''):`<tr><td colspan="8" class="empty">${pfSearch||pfTypeFilter!=='all'?'Aucune position pour ce filtre.':'Aucune position — ajoute ta première transaction.'}</td></tr>`}</tbody>
     </table></div></div>
-    <div class="section-title">Patrimoine global hors marché</div>
+    <div class="shead"><div class="section-title">Patrimoine hors marché</div><span class="hint">comptes & enveloppes déclarés</span></div>
     <div class="card flush"><div class="tbl-wrap"><table>
       <thead><tr><th class="l">Compte / enveloppe</th><th class="l">Type</th><th class="l">Statut</th><th>Montant</th><th>Valeur EUR</th><th class="l">Institution</th><th class="l">Mise à jour</th><th></th></tr></thead>
-      <tbody>${(S.accounts||[]).map(a=>`<tr><td class="l"><div class="asset-name">${esc(a.name)}</div><div class="asset-sub">${esc(a.envelope)} · ${esc(a.comment)}</div></td><td class="l">${ACCOUNT_TYPES[a.type]||a.type}</td><td class="l"><span class="badge ${defaultAccountStatus(a)==='frozen'?'b-manual':defaultAccountStatus(a)==='active'?'b-live':'b-account'}">${ACCOUNT_STATUS[defaultAccountStatus(a)]}</span></td><td>${fM(a.amount,a.cur)}</td><td>${fE(accountValue(a))}</td><td class="l muted">${esc(a.institution)}</td><td class="l muted">${esc(a.updatedAt)}</td><td><button class="icon-btn" onclick="editAccount('${a.id}')">✎</button><button class="icon-btn" onclick="delAccount('${a.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun compte.</td></tr>`}</tbody>
+      <tbody>${(S.accounts||[]).map(a=>`<tr><td class="l"><div class="asset-name">${esc(a.name)}</div><div class="asset-sub">${esc(a.envelope)} · ${esc(a.comment)}</div></td><td class="l">${ACCOUNT_TYPES[a.type]||a.type}</td><td class="l"><span class="badge ${defaultAccountStatus(a)==='frozen'?'b-manual':defaultAccountStatus(a)==='active'?'b-live':'b-account'}">${ACCOUNT_STATUS[defaultAccountStatus(a)]}</span></td><td>${fM(a.amount,a.cur)}</td><td>${fE(accountValue(a))}</td><td class="l muted">${esc(a.institution)}</td><td class="l muted">${esc(a.updatedAt)}</td><td><button class="icon-btn" onclick="editAccount('${a.id}')">✎</button><button class="icon-btn" onclick="delAccount('${a.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun compte — déclare ici cash, AV, PEL, 3e pilier.</td></tr>`}</tbody>
     </table></div></div>
-    <div class="section-title">Actifs personnalisés</div>
+    <div class="shead"><div class="section-title">Actifs personnalisés</div><span class="hint">hors catalogue d'autocomplétion</span></div>
     <div class="card flush"><div class="tbl-wrap"><table>
       <thead><tr><th class="l">Actif</th><th class="l">Type</th><th class="l">Devise</th><th class="l">Source</th><th class="l">Plateforme</th><th></th></tr></thead>
       <tbody>${(S.customAssets||[]).map(a=>`<tr><td class="l"><div class="asset-name">${esc(a.name)}</div><div class="asset-sub">${esc(a.ticker)} ${a.isin?'· '+esc(a.isin):''}</div></td><td class="l">${TYPES[a.type]||a.type}</td><td class="l">${esc(a.cur)}</td><td class="l"><span class="badge ${a.priceSource==='live'?'b-live':'b-manual'}">${a.priceSource==='live'?'live':'manuel'}</span></td><td class="l muted">${esc(a.platform)}</td><td><button class="icon-btn" onclick="delAsset('${a.id}')">×</button></td></tr>`).join('')||`<tr><td colspan="6" class="empty">Ajoute ici les actifs hors autocomplétion.</td></tr>`}</tbody>
@@ -1278,41 +1624,41 @@ function renderEnvelopes(){
 function renderTransactions(){
   const rmap=realizedByTx();
   let txs=[...S.transactions];
-  // Filtres
   if(txFilter.op!=='all')txs=txs.filter(t=>t.op===txFilter.op);
   if(txFilter.env!=='all')txs=txs.filter(t=>inferEnvelope(t)===txFilter.env);
   if(txFilter.q){const q=txFilter.q.toLowerCase();txs=txs.filter(t=>String(t.name).toLowerCase().includes(q)||String(t.sym).toLowerCase().includes(q)||String(t.platform).toLowerCase().includes(q));}
   txs.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  // Totaux
   const totalInvest=txs.filter(t=>t.op==='buy').reduce((s,t)=>s+toE(num(t.qty)*num(t.price)+feeTotal(t),t.cur),0);
   const totalSold=txs.filter(t=>t.op==='sell').reduce((s,t)=>s+toE(num(t.qty)*num(t.price),t.cur),0);
   const totalRealized=txs.filter(t=>t.op==='sell').reduce((s,t)=>s+(rmap[t.id]??num(t.realizedPl)),0);
   const envOptions=['all',...ENVELOPES];
   byId('content').innerHTML=`<div class="stack">
-    <div class="toolbar"><div class="fa"><button class="btn btn-p" onclick="showTxForm()">Ajouter transaction</button></div>
-    <div class="fa">
-      <select onchange="txFilter.op=this.value;renderTransactions()" style="max-width:130px"><option value="all"${txFilter.op==='all'?' selected':''}>Tout</option><option value="buy"${txFilter.op==='buy'?' selected':''}>Achats</option><option value="sell"${txFilter.op==='sell'?' selected':''}>Ventes</option></select>
-      <select onchange="txFilter.env=this.value;renderTransactions()" style="max-width:150px">${envOptions.map(e=>`<option value="${e}"${txFilter.env===e?' selected':''}>${e==='all'?'Toutes enveloppes':e}</option>`).join('')}</select>
-      <input type="text" placeholder="Rechercher…" value="${esc(txFilter.q)}" oninput="txFilter.q=this.value;renderTransactions()" style="min-width:160px">
-    </div></div>
+    <div class="toolbar">
+      <div class="fa"><button class="btn btn-p" onclick="showTxForm()">+ Nouvelle transaction</button></div>
+      <div class="fa">
+        <select onchange="txFilter.op=this.value;renderTransactions()" style="max-width:140px"><option value="all"${txFilter.op==='all'?' selected':''}>Toutes opérations</option><option value="buy"${txFilter.op==='buy'?' selected':''}>Achats</option><option value="sell"${txFilter.op==='sell'?' selected':''}>Ventes</option></select>
+        <select onchange="txFilter.env=this.value;renderTransactions()" style="max-width:160px">${envOptions.map(e=>`<option value="${e}"${txFilter.env===e?' selected':''}>${e==='all'?'Toutes enveloppes':e}</option>`).join('')}</select>
+        <input type="text" placeholder="Rechercher…" value="${esc(txFilter.q)}" oninput="txFilter.q=this.value;renderTransactions()" style="min-width:180px">
+      </div>
+    </div>
     <div id="tx-form"></div>
-    <div class="g3">
-      <div class="card kpi-card"><div class="kpi-lbl">Total acheté ${txFilter.op==='sell'?'(masqué)':''}</div><div class="kpi-val">${fE(totalInvest)}</div></div>
-      <div class="card kpi-card"><div class="kpi-lbl">Total vendu</div><div class="kpi-val">${fE(totalSold)}</div></div>
-      <div class="card kpi-card"><div class="kpi-lbl">Plus-value réalisée</div><div class="kpi-val ${totalRealized>=0?'pos':'neg'}">${fE(totalRealized)}</div></div>
+    <div class="sstrip s3">
+      <div class="ss"><span class="ss-l">Total acheté${txFilter.op==='sell'?' (filtré)':''}</span><span class="ss-v">${fE(totalInvest)}</span><span class="ss-n">frais inclus</span></div>
+      <div class="ss"><span class="ss-l">Total vendu</span><span class="ss-v">${fE(totalSold)}</span><span class="ss-n">produit brut des ventes</span></div>
+      <div class="ss"><span class="ss-l">Plus-value réalisée</span><span class="ss-v ${totalRealized>=0?'pos':'neg'}">${fE(totalRealized)}</span><span class="ss-n">au coût moyen pondéré</span></div>
     </div>
     <div class="card flush"><div class="tbl-wrap"><table>
-      <thead><tr><th class="l">Date</th><th class="l">Actif</th><th class="l">Op.</th><th>Qté</th><th>Prix</th><th>Frais</th><th>Réalisé</th><th class="l">Enveloppe</th><th></th></tr></thead>
+      <thead><tr><th class="l">Date</th><th class="l">Actif</th><th class="l">Opération</th><th>Qté</th><th>Prix</th><th>Frais</th><th>Réalisé</th><th class="l">Enveloppe</th><th></th></tr></thead>
       <tbody>${txs.length?txs.map(t=>`<tr>
         <td class="l muted">${esc(t.date)}</td>
-        <td class="l"><div class="asset-name">${esc(t.name)}</div><div class="asset-sub">${esc(t.sym)} · ${esc(t.platform)}</div></td>
-        <td class="l"><span class="badge ${t.op==='buy'?'b-live':'b-manual'}">${t.op==='buy'?'Achat':'Vente'}</span></td>
+        <td class="l" style="box-shadow:inset 3px 0 0 ${COLORS[t.type]||'#888'}"><div class="asset-name">${esc(t.name)} <span class="badge b-${t.type}">${TYPES[t.type]||t.type}</span></div><div class="asset-sub">${esc(t.sym)} · ${esc(t.platform)}</div></td>
+        <td class="l"><span class="opchip ${t.op==='buy'?'buy':'sell'}">${t.op==='buy'?'Achat':'Vente'}</span></td>
         <td>${fN(t.qty)}</td><td>${fM(t.price,t.cur)}</td>
         <td>${feeTotal(t)?fM(feeTotal(t),t.cur):'—'}</td>
         <td class="${(rmap[t.id]??num(t.realizedPl))>=0?'pos':'neg'}">${t.op==='sell'?fE(rmap[t.id]??num(t.realizedPl)):'—'}</td>
         <td class="l muted">${esc(inferEnvelope(t))}</td>
-        <td style="white-space:nowrap"><button class="icon-btn" onclick="editTx('${t.id}')" title="Modifier">✏️</button> <button class="icon-btn" onclick="delTx('${t.id}')" title="Supprimer">×</button></td>
-      </tr>`).join(''):`<tr><td colspan="9" class="empty">${(txFilter.op!=='all'||txFilter.env!=='all'||txFilter.q)?'Aucune transaction pour ces filtres.':'Aucune transaction.'}</td></tr>`}</tbody>
+        <td style="white-space:nowrap"><button class="icon-btn" onclick="editTx('${t.id}')" title="Modifier">✎</button> <button class="icon-btn" onclick="delTx('${t.id}')" title="Supprimer">×</button></td>
+      </tr>`).join(''):`<tr><td colspan="9" class="empty">${(txFilter.op!=='all'||txFilter.env!=='all'||txFilter.q)?'Aucune transaction pour ces filtres.':'Aucune transaction — commence par enregistrer ton premier achat.'}</td></tr>`}</tbody>
     </table></div></div>
     <div class="note">${txs.length} transaction${txs.length>1?'s':''} affichée${txs.length>1?'s':''} sur ${S.transactions.length} au total.</div>
   </div>`;
@@ -1321,8 +1667,55 @@ function renderTransactions(){
 function showTxForm(prefill={}){
   const op=prefill.op||'buy';
   const goldKind=prefill.goldKind||'';
+  const goldOpen=num(prefill.goldWeight)>0||goldKind;
   const goldKindOptions=['','pièce','lingotin','once','autre'].map(v=>`<option value="${v}" ${goldKind===v?'selected':''}>${v||'—'}</option>`).join('');
-  byId('tx-form').innerHTML=`<div class="card"><div class="card-title">${prefill._editId?"Modifier la transaction":"Nouvelle transaction"}</div><input type="hidden" id="f-edit-id" value="${prefill._editId||''}"><div class="fgrid"><div class="fl wide"><label>Ticker</label><div class="autocomplete-wrap"><input id="fs" value="${esc(prefill.sym||'')}" oninput="acSearch(this.value)" autocomplete="off" style="text-transform:uppercase"><div class="autocomplete-list" id="ac-list" style="display:none"></div></div></div><div class="fl"><label>Nom</label><input id="fn" value="${esc(prefill.name||'')}"></div><div class="fl"><label>Type</label><select id="ft">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}" ${prefill.type===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Opération</label><select id="fo"><option value="buy" ${op==='buy'?'selected':''}>Achat</option><option value="sell" ${op==='sell'?'selected':''}>Vente</option></select></div><div class="fl"><label>Enveloppe</label><select id="fe">${ENVELOPES.map(e=>`<option ${(prefill.envelope||inferEnvelope(prefill))===e?'selected':''}>${e}</option>`).join('')}</select></div><div class="fl"><label>Plateforme</label><select id="fp">${PLATFORMS.map(pf=>`<option ${(prefill.platform||'Trade Republic')===pf?'selected':''}>${pf}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="fc">${['EUR','USD','CHF'].map(c=>`<option ${prefill.cur===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="fl"><label>Quantité</label><input id="fq" type="number" value="${prefill.qty||''}"></div><div class="fl"><label>Prix unitaire payé / vendu</label><input id="fpr" type="number" value="${prefill.price||''}"></div><div class="fl"><label>Frais ordre</label><input id="ff" type="number" value="${num(prefill.fees)||0}"></div><div class="fl"><label>Frais change</label><input id="ffx" type="number" value="${num(prefill.fxFees)||0}"></div><div class="fl"><label>Spread / prime estimée</label><input id="fsp" type="number" value="${num(prefill.spreadFees)||0}"></div><div class="fl"><label>Frais courtier / garde</label><input id="fbr" type="number" value="${num(prefill.brokerFees)||0}"></div><div class="fl"><label>Date</label><input id="fd" type="date" value="${prefill.date||today()}"></div><div class="fl"><label>Poids or (g)</label><input id="fgw" type="number" value="${num(prefill.goldWeight)||''}"></div><div class="fl"><label>Type or</label><select id="fgk">${goldKindOptions}</select></div><div class="fl"><label>Spot or</label><input id="fgs" type="number" value="${num(prefill.spotPrice)||num(S.goldSpot)||''}"></div><div class="fl wide"><label>Commentaire</label><textarea id="fco">${esc(prefill.comment||'')}</textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveTx()">Enregistrer</button><button class="btn btn-g" onclick="byId('tx-form').innerHTML=''">Annuler</button></div></div>`;
+  byId('tx-form').innerHTML=`<div class="card txform">
+    <div class="panel-head"><div class="card-title" style="margin:0">${prefill._editId?"Modifier la transaction":"Nouvelle transaction"}</div><button class="icon-btn" onclick="byId('tx-form').innerHTML=''" title="Fermer">×</button></div>
+    <input type="hidden" id="f-edit-id" value="${prefill._editId||''}">
+
+    <div class="blk"><div class="blk-t">1 · Actif</div><div class="bgrid b3">
+      <div class="fl wide"><label>Ticker</label><div class="autocomplete-wrap"><input id="fs" value="${esc(prefill.sym||'')}" oninput="acSearch(this.value)" autocomplete="off" style="text-transform:uppercase" placeholder="WPEA, ESEE, BTC…"><div class="autocomplete-list" id="ac-list" style="display:none"></div></div></div>
+      <div class="fl"><label>Nom</label><input id="fn" value="${esc(prefill.name||'')}" placeholder="Rempli automatiquement"></div>
+      <div class="fl"><label>Type</label><select id="ft">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}" ${prefill.type===k?'selected':''}>${l}</option>`).join('')}</select></div>
+    </div></div>
+
+    <div class="blk"><div class="blk-t">2 · Opération & montant</div>
+      <div class="seg"><button type="button" id="seg-buy" class="seg-buy${op==='buy'?' on':''}" onclick="setTxOp('buy')">Achat</button><button type="button" id="seg-sell" class="seg-sell${op==='sell'?' on':''}" onclick="setTxOp('sell')">Vente</button></div>
+      <select id="fo" class="vh"><option value="buy" ${op==='buy'?'selected':''}>Achat</option><option value="sell" ${op==='sell'?'selected':''}>Vente</option></select>
+      <div class="bgrid b4">
+        <div class="fl"><label>Quantité</label><input id="fq" type="number" value="${prefill.qty||''}" oninput="txLiveTotal()"></div>
+        <div class="fl"><label>Prix unitaire</label><input id="fpr" type="number" value="${prefill.price||''}" oninput="txLiveTotal()"></div>
+        <div class="fl"><label>Devise</label><select id="fc" onchange="txLiveTotal()">${['EUR','USD','CHF'].map(c=>`<option ${prefill.cur===c?'selected':''}>${c}</option>`).join('')}</select></div>
+        <div class="fl"><label>Date</label><input id="fd" type="date" value="${prefill.date||today()}"></div>
+      </div>
+      <div class="tx-total"><span>Montant brut estimé</span><b id="tx-total">—</b></div>
+    </div>
+
+    <div class="blk"><div class="blk-t">3 · Frais</div><div class="bgrid b4">
+      <div class="fl"><label>Frais d'ordre</label><input id="ff" type="number" value="${num(prefill.fees)||0}" oninput="txLiveTotal()"></div>
+      <div class="fl"><label>Frais de change</label><input id="ffx" type="number" value="${num(prefill.fxFees)||0}" oninput="txLiveTotal()"></div>
+      <div class="fl"><label>Spread / prime</label><input id="fsp" type="number" value="${num(prefill.spreadFees)||0}" oninput="txLiveTotal()"></div>
+      <div class="fl"><label>Courtier / garde</label><input id="fbr" type="number" value="${num(prefill.brokerFees)||0}" oninput="txLiveTotal()"></div>
+    </div></div>
+
+    <div class="blk"><div class="blk-t">4 · Enveloppe & plateforme</div><div class="bgrid b3">
+      <div class="fl"><label>Enveloppe</label><select id="fe">${ENVELOPES.map(e=>`<option ${(prefill.envelope||inferEnvelope(prefill))===e?'selected':''}>${e}</option>`).join('')}</select></div>
+      <div class="fl"><label>Plateforme</label><select id="fp">${PLATFORMS.map(pf=>`<option ${(prefill.platform||'Trade Republic')===pf?'selected':''}>${pf}</option>`).join('')}</select></div>
+    </div></div>
+
+    <details class="adv blk" ${goldOpen?'open':''}><summary>5 · Or physique (optionnel)</summary><div class="bgrid b3" style="margin-top:12px">
+      <div class="fl"><label>Poids (g)</label><input id="fgw" type="number" value="${num(prefill.goldWeight)||''}"></div>
+      <div class="fl"><label>Forme</label><select id="fgk">${goldKindOptions}</select></div>
+      <div class="fl"><label>Spot or</label><input id="fgs" type="number" value="${num(prefill.spotPrice)||num(S.goldSpot)||''}"></div>
+    </div></details>
+
+    <div class="blk"><div class="blk-t">6 · Commentaire</div>
+      <div class="fl wide"><textarea id="fco" placeholder="Note libre — contexte, stratégie, source…">${esc(prefill.comment||'')}</textarea></div>
+    </div>
+
+    <div class="fa"><button class="btn btn-p" onclick="saveTx()">Enregistrer la transaction</button><button class="btn btn-g" onclick="byId('tx-form').innerHTML=''">Annuler</button></div>
+  </div>`;
+  setTxOp(op);txLiveTotal();
 }
 function acSearch(val){const list=byId('ac-list');if(!list||!val){list.style.display='none';return;}const q=val.toUpperCase(),cat=assetCatalog();const matches=Object.entries(cat).filter(([k,v])=>k.includes(q)||String(v.name).toUpperCase().includes(q)).slice(0,9);if(!matches.length){list.innerHTML=`<div class="ac-item"><div><div class="ac-name">Actif personnalisé possible</div><div class="ac-type">Ajoute-le dans Portefeuille si tu veux le réutiliser</div></div></div>`;list.style.display='block';return;}list.innerHTML=matches.map(([k,v])=>`<div class="ac-item" onmousedown="acSelect('${k}')"><div><div class="ac-name">${k} — ${esc(v.name)}</div><div class="ac-type">${TYPES[v.type]||v.type} · ${v.cur}</div></div><span class="badge b-${v.type}">${TYPES[v.type]||v.type}</span></div>`).join('');list.style.display='block';}
 function acSelect(sym){const i=assetCatalog()[sym];byId('fs').value=sym;byId('fn').value=i.name;byId('ft').value=i.type;byId('fc').value=i.cur||'EUR';const env=inferEnvelope({type:i.type,platform:byId('fp')?.value||''});if(byId('fe'))byId('fe').value=env;byId('ac-list').style.display='none';}
@@ -1497,8 +1890,67 @@ async function renderMarket(force=false){
   }
 }
 
-function renderDca(){const plan=monthlyPlanSummary(),mk=plan.mk,lines=plan.lines,execs=S.dca.executions||[],done=plan.done,planned=plan.planned,actual=plan.actual;byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="hint">Plan mensuel limité aux enveloppes alimentées: PEA, CTO et crypto. Assurance-vie, 3e pilier et PEL restent en suivi patrimonial.</div><button class="btn btn-p" onclick="showDcaForm()">Ajouter ligne</button></div><div id="dca-form"></div><div class="g3"><div class="card kpi-card"><div class="kpi-lbl">Prévu ce mois</div><div class="kpi-val">${fE(planned)}</div></div><div class="card kpi-card"><div class="kpi-lbl">Déjà exécuté</div><div class="kpi-val pos">${fE(actual)}</div><div class="progress" style="margin-top:8px"><span style="width:${planned>0?clamp(actual/planned*100,0,100):0}%"></span></div><div class="hint" style="margin-top:4px">${planned>0?(actual/planned*100).toFixed(0):0}% du plan</div></div><div class="card kpi-card"><div class="kpi-lbl">Reste à investir</div><div class="kpi-val">${fE(Math.max(0,planned-actual))}</div></div></div><div class="card"><div class="card-title">Plan du mois — ${mk}</div>${lines.map(l=>{const ex=done(l.id);return`<div class="dca-row"><button class="chk ${ex?'on':''}" onclick="executeDca('${l.id}')">${ex?'✓':''}</button><div><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · jour ${l.day||'—'}</div></div><span>${fE(l.plannedAmt)}</span><span>${ex?fE(ex.actual):'—'}</span><span class="${ex&&ex.actual-l.plannedAmt>=0?'pos':'neg'}">${ex?fE(ex.actual-l.plannedAmt):'—'}</span><span class="muted">${esc(l.platform)}</span><button class="icon-btn" onclick="delDcaLine('${l.id}')">×</button></div>`}).join('')||'<div class="empty">Aucune ligne mensuelle active.</div>'}</div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Mois</th><th class="l">Actif</th><th>Prévu</th><th>Brut réel</th><th>Frais</th><th>Qté</th><th>Écart</th><th class="l">Transaction</th></tr></thead><tbody>${execs.slice().reverse().map(e=>`<tr><td class="l">${e.month}</td><td class="l">${esc(e.name)}</td><td>${fE(e.planned)}</td><td>${fE(e.actual)}</td><td>${num(e.fees)+num(e.spreadFees)?fE(num(e.fees)+num(e.spreadFees)):'—'}</td><td>${e.qty?fN(e.qty):'—'}</td><td class="${e.actual-e.planned>=0?'pos':'neg'}">${fE(e.actual-e.planned)}</td><td class="l muted">${e.txId?'créée':'non créée'}</td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun historique mensuel.</td></tr>`}</tbody></table></div></div></div>`}
-function showDcaForm(){byId('dca-form').innerHTML=`<div class="card"><div class="card-title">Nouvelle ligne mensuelle</div><div style="display:flex;gap:10px;margin-bottom:10px"><div class="fl" style="flex:1"><label>Ticker</label><div class="autocomplete-wrap"><input id="ds" style="text-transform:uppercase;width:100%" oninput="dcaAcSearch(this.value)" autocomplete="off" placeholder="Ex: AO00, ESEE, BTC…"><div class="autocomplete-list" id="dac-list" style="display:none"></div></div></div><div class="fl" style="flex:2"><label>Nom</label><input id="dn" placeholder="Rempli automatiquement"></div></div><div class="fgrid" style="overflow:visible"><div class="fl"><label>Type</label><select id="dt">${Object.entries(TYPES).filter(([k])=>['etf','stock','crypto'].includes(k)).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Montant prévu</label><input id="da" type="number"></div><div class="fl"><label>Fréquence</label><select id="df"><option>Mensuelle</option><option>Trimestrielle</option><option>Hebdomadaire</option></select></div><div class="fl"><label>Plateforme</label><select id="dp">${PLATFORMS.map(pf=>`<option>${pf}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="dc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Jour du mois</label><input id="dd" type="number" value="5"></div><div class="fl"><label>Enveloppe</label><select id="de">${DCA_ENVELOPES.map(e=>`<option>${e}</option>`).join('')}</select></div></div><div class="fa"><button class="btn btn-p" onclick="saveDcaLine()">Enregistrer</button><button class="btn btn-g" onclick="byId('dca-form').innerHTML=''">Annuler</button></div></div>`}
+function renderDca(){
+  const plan=monthlyPlanSummary(),mk=plan.mk,lines=plan.lines,execs=S.dca.executions||[],done=plan.done,planned=plan.planned,actual=plan.actual,remaining=Math.max(0,planned-actual);
+  const pctv=planned>0?clamp(actual/planned*100,0,100):0;
+  const doneCount=lines.filter(l=>done(l.id)).length;
+  byId('content').innerHTML=`<div class="stack">
+    <div class="toolbar"><div class="hint">Plan mensuel limité aux enveloppes alimentées : PEA, CTO et crypto. Assurance-vie, 3e pilier et PEL restent en suivi patrimonial.</div><button class="btn btn-p" onclick="showDcaForm()">+ Ajouter une ligne</button></div>
+    <div id="dca-form"></div>
+
+    <section class="card dcahero">
+      <div class="dh-left">
+        <div class="ring-wrap big">${ringSvg(pctv,92,8)}<span class="ring-txt">${pctv.toFixed(0)}<small>%</small></span></div>
+        <div class="dh-main"><div class="hero-label">Plan d'exécution — ${mk}</div><div class="dh-big">${fE(actual)} <span class="muted">/ ${fE(planned)}</span></div><div class="hint">${doneCount}/${lines.length} ligne${lines.length>1?'s':''} exécutée${doneCount>1?'s':''} · reste <b>${fE(remaining)}</b> à investir</div></div>
+      </div>
+      <div class="dh-right">
+        <div class="dca-nums">
+          <div><span>Prévu</span><b>${fE(planned)}</b></div>
+          <div><span>Exécuté</span><b class="pos">${fE(actual)}</b></div>
+          <div><span>Reste</span><b class="${remaining>0?'neg':'pos'}">${fE(remaining)}</b></div>
+        </div>
+        <div class="fa" style="margin-top:14px"><button class="btn btn-g" onclick="createSnapshot(true);renderDca()">Snapshot</button><button class="btn btn-g" onclick="goTab('allocation')">Voir les cibles</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">Checklist du mois</div>
+      ${lines.length?lines.map(l=>{const ex=done(l.id);const ecart=ex?ex.actual-l.plannedAmt:0;return`<div class="dline${ex?' done':''}">
+        <button class="chk ${ex?'on':''}" onclick="executeDca('${l.id}')" title="${ex?'Annuler / ré-exécuter':'Marquer exécuté'}">${ex?'✓':''}</button>
+        <div class="dl-id"><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · jour ${l.day||'—'} · ${esc(l.platform)}</div></div>
+        <div class="dl-cell"><span>Prévu</span><b>${fE(l.plannedAmt)}</b></div>
+        <div class="dl-cell"><span>Réel</span><b>${ex?fE(ex.actual):'—'}</b></div>
+        <div class="dl-cell"><span>Écart</span><b class="${ex?(ecart>=0?'pos':'neg'):'muted'}">${ex?fE(ecart):'—'}</b></div>
+        <span class="dl-st ${ex?'ok':''}">${ex?'Exécuté':'À faire'}</span>
+        <button class="icon-btn" onclick="delDcaLine('${l.id}')" title="Supprimer la ligne">×</button>
+      </div>`}).join(''):'<div class="empty">Aucune ligne mensuelle active — ajoute WPEA, ESEE ou BTC pour démarrer ton plan.</div>'}
+    </section>
+
+    <section class="card flush"><div class="shead" style="padding:16px 18px 0"><div class="section-title" style="margin:0">Historique des exécutions</div></div><div class="tbl-wrap"><table>
+      <thead><tr><th class="l">Mois</th><th class="l">Actif</th><th>Prévu</th><th>Brut réel</th><th>Frais</th><th>Qté</th><th>Écart</th><th class="l">Transaction</th></tr></thead>
+      <tbody>${execs.slice().reverse().map(e=>`<tr><td class="l">${e.month}</td><td class="l">${esc(e.name)}</td><td>${fE(e.planned)}</td><td>${fE(e.actual)}</td><td>${num(e.fees)+num(e.spreadFees)?fE(num(e.fees)+num(e.spreadFees)):'—'}</td><td>${e.qty?fN(e.qty):'—'}</td><td class="${e.actual-e.planned>=0?'pos':'neg'}">${fE(e.actual-e.planned)}</td><td class="l muted">${e.txId?'créée':'non créée'}</td></tr>`).join('')||`<tr><td colspan="8" class="empty">Aucun historique mensuel pour le moment.</td></tr>`}</tbody>
+    </table></div></section>
+  </div>`;
+}
+function showDcaForm(){byId('dca-form').innerHTML=`<div class="card txform">
+  <div class="panel-head"><div class="card-title" style="margin:0">Nouvelle ligne mensuelle</div><button class="icon-btn" onclick="byId('dca-form').innerHTML=''">×</button></div>
+  <div class="blk"><div class="blk-t">Actif</div><div class="bgrid b3">
+    <div class="fl wide"><label>Ticker</label><div class="autocomplete-wrap"><input id="ds" style="text-transform:uppercase" oninput="dcaAcSearch(this.value)" autocomplete="off" placeholder="Ex : AO00, ESEE, BTC…"><div class="autocomplete-list" id="dac-list" style="display:none"></div></div></div>
+    <div class="fl"><label>Nom</label><input id="dn" placeholder="Rempli automatiquement"></div>
+    <div class="fl"><label>Type</label><select id="dt">${Object.entries(TYPES).filter(([k])=>['etf','stock','crypto'].includes(k)).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div>
+  </div></div>
+  <div class="blk"><div class="blk-t">Cadence & montant</div><div class="bgrid b4">
+    <div class="fl"><label>Montant prévu</label><input id="da" type="number"></div>
+    <div class="fl"><label>Fréquence</label><select id="df"><option>Mensuelle</option><option>Trimestrielle</option><option>Hebdomadaire</option></select></div>
+    <div class="fl"><label>Devise</label><select id="dc"><option>EUR</option><option>USD</option><option>CHF</option></select></div>
+    <div class="fl"><label>Jour du mois</label><input id="dd" type="number" value="5"></div>
+  </div></div>
+  <div class="blk"><div class="blk-t">Enveloppe & plateforme</div><div class="bgrid b3">
+    <div class="fl"><label>Enveloppe</label><select id="de">${DCA_ENVELOPES.map(e=>`<option>${e}</option>`).join('')}</select></div>
+    <div class="fl"><label>Plateforme</label><select id="dp">${PLATFORMS.map(pf=>`<option>${pf}</option>`).join('')}</select></div>
+  </div></div>
+  <div class="fa"><button class="btn btn-p" onclick="saveDcaLine()">Enregistrer la ligne</button><button class="btn btn-g" onclick="byId('dca-form').innerHTML=''">Annuler</button></div>
+</div>`}
 function dcaAcSearch(val){const list=byId('dac-list');if(!list||!val){if(list)list.style.display='none';return;}const q=val.toUpperCase(),cat=assetCatalog();const matches=Object.entries(cat).filter(([k,v])=>k.includes(q)||String(v.name).toUpperCase().includes(q)).slice(0,9);if(!matches.length){list.style.display='none';return;}list.innerHTML=matches.map(([k,v])=>`<div class="ac-item" onmousedown="dcaAcSelect('${k}')"><div><div class="ac-name">${k} — ${esc(v.name)}</div><div class="ac-type">${TYPES[v.type]||v.type} · ${v.cur}</div></div><span class="badge b-${v.type}">${TYPES[v.type]||v.type}</span></div>`).join('');list.style.display='block';}
 function dcaAcSelect(sym){const i=assetCatalog()[sym];byId('ds').value=sym;if(byId('dn'))byId('dn').value=i.name;if(byId('dt')&&['etf','stock','crypto'].includes(i.type))byId('dt').value=i.type;if(byId('dc'))byId('dc').value=i.cur||'EUR';if(byId('dp')&&i.platform)byId('dp').value=i.platform;if(byId('de'))byId('de').value=inferEnvelope({type:i.type,platform:i.platform});byId('dac-list').style.display='none';}
 function saveDcaLine(){const l={id:cid(),name:byId('dn').value.trim(),sym:byId('ds').value.trim().toUpperCase(),type:byId('dt').value,plannedAmt:num(byId('da').value),frequency:byId('df').value,platform:byId('dp').value.trim(),cur:byId('dc').value,day:num(byId('dd').value),envelope:byId('de').value,active:true};if(!l.name||!l.sym||l.plannedAmt<=0){toast('Nom, ticker et montant requis');return;}if(!DCA_ENVELOPES.includes(l.envelope)){toast('Cette enveloppe est hors plan mensuel');return;}S.dca.lines=[...(S.dca.lines||[]),l];save();renderDca();}
@@ -1528,7 +1980,48 @@ function executeDca(id){
   save();toast('Plan mensuel exécuté');renderDca();
 }
 function delDcaLine(id){if(!confirm('Supprimer cette ligne DCA ?'))return;S.dca.lines=S.dca.lines.filter(l=>l.id!==id);save();renderDca();}
-function renderAllocation(){const items=strategyItems(),baseValue=sumItems(items);function valFor(t){if(t.matchType==='symbol')return items.filter(i=>i.sym===String(t.matchValue).toUpperCase()).reduce((s,i)=>s+i.value,0);if(t.matchType==='type')return items.filter(i=>i.type===t.matchValue).reduce((s,i)=>s+i.value,0);if(t.matchType==='envelope')return items.filter(i=>i.envelope===t.matchValue).reduce((s,i)=>s+i.value,0);return 0}killCharts();byId('content').innerHTML=`<div class="stack"><div class="toolbar"><div class="hint">Simulation indicative basée sur tes cibles. Base utilisée: portefeuille piloté (${fE(baseValue)}) = PEA, CTO, crypto et cash disponible. Assurance-vie, 3e pilier et PEL gelés sont exclus.</div><button class="btn btn-p" onclick="addTarget()">Ajouter cible</button></div><div class="g2" id="alloc-donuts" style="margin-bottom:14px"></div><div class="card flush"><div class="tbl-wrap"><table><thead><tr><th class="l">Cible</th><th class="l">Règle</th><th>Actuel</th><th>Cible</th><th>Écart €</th><th>Écart %</th><th class="l">Recommandation mécanique</th><th></th></tr></thead><tbody>${(S.targetAllocation||[]).map(t=>{const v=valFor(t),cur=baseValue?v/baseValue*100:0,target=num(t.targetPct),targetE=baseValue*target/100,diff=targetE-v,rec=Math.abs(diff)<50?'Ne rien faire':diff>0?`Acheter / renforcer ${esc(t.label)} pour environ ${fE(diff)}`:`Ne pas renforcer ${esc(t.label)} ce mois-ci`;return`<tr><td class="l"><input class="mini-input" value="${esc(t.label)}" onchange="editTarget('${t.id}','label',this.value)"></td><td class="l"><select class="mini-input" onchange="editTarget('${t.id}','matchType',this.value)"><option value="symbol" ${t.matchType==='symbol'?'selected':''}>Ticker</option><option value="type" ${t.matchType==='type'?'selected':''}>Type</option><option value="envelope" ${t.matchType==='envelope'?'selected':''}>Enveloppe</option></select><input class="mini-input" value="${esc(t.matchValue)}" onchange="editTarget('${t.id}','matchValue',this.value)" style="margin-top:5px"></td><td>${cur.toFixed(1)}%</td><td><input class="mini-input" type="number" value="${target}" onchange="editTarget('${t.id}','targetPct',this.value)"></td><td class="${diff>=0?'pos':'neg'}">${fE(diff)}</td><td class="${target-cur>=0?'pos':'neg'}">${(target-cur).toFixed(1)} pts</td><td class="l">${rec}</td><td><button class="icon-btn" onclick="delTarget('${t.id}')">×</button></td></tr>`}).join('')}</tbody></table></div></div></div>`;
+function renderAllocation(){
+  const items=strategyItems(),baseValue=sumItems(items);
+  function valFor(t){if(t.matchType==='symbol')return items.filter(i=>i.sym===String(t.matchValue).toUpperCase()).reduce((s,i)=>s+i.value,0);if(t.matchType==='type')return items.filter(i=>i.type===t.matchValue).reduce((s,i)=>s+i.value,0);if(t.matchType==='envelope')return items.filter(i=>i.envelope===t.matchValue).reduce((s,i)=>s+i.value,0);return 0}
+  killCharts();
+  const rows=allocationRows(items);
+  const sorted=[...rows].sort((a,b)=>b.under-a.under||b.absDiff-a.absDiff);
+  const under=rows.filter(r=>r.diff>50),over=rows.filter(r=>r.diff<-50);
+  const onTarget=rows.length-under.length-over.length;
+  const bigOver=rows.filter(r=>(r.currentPct-r.targetPct)>10&&r.targetPct>0);
+  const reco=sorted.filter(r=>Math.abs(r.diff)>=50);
+
+  byId('content').innerHTML=`<div class="stack">
+    <div class="toolbar"><div class="hint">Base pilotée : <b>${fE(baseValue)}</b> = PEA + CTO + crypto + cash disponible. Assurance-vie, 3e pilier et PEL gelés sont exclus du calcul.</div><button class="btn btn-p" onclick="addTarget()">+ Ajouter une cible</button></div>
+
+    <div class="sstrip">
+      <div class="ss"><span class="ss-l">Base pilotée</span><span class="ss-v">${fE(baseValue)}</span><span class="ss-n">${rows.length} cible${rows.length>1?'s':''} définie${rows.length>1?'s':''}</span></div>
+      <div class="ss"><span class="ss-l">Sur cible</span><span class="ss-v pos">${onTarget}</span><span class="ss-n">poches alignées (±0,5 pt)</span></div>
+      <div class="ss"><span class="ss-l">Sous-pondérées</span><span class="ss-v" style="color:var(--blue)">${under.length}</span><span class="ss-n">à renforcer en priorité</span></div>
+      <div class="ss"><span class="ss-l">Surpondérées</span><span class="ss-v" style="color:var(--accent)">${over.length}</span><span class="ss-n">à ne pas renforcer</span></div>
+    </div>
+
+    ${bigOver.length?`<div class="syschk warn"><span class="syschk-ic">⚠</span><span><b>Dépassement notable :</b> ${bigOver.map(r=>`${esc(r.label)} (+${(r.currentPct-r.targetPct).toFixed(1)} pts)`).join(' · ')}. Oriente les prochains apports ailleurs.</span></div>`:''}
+
+    <div class="cgrid">
+      <section class="card c7">
+        <div class="card-title">Actuel vs cible</div>
+        <div class="cmp-list">${cmpRowsHtml(sorted)}</div>
+        <div class="note">Remplissage = part actuelle · trait bleu = cible. Trié par sous-pondération.</div>
+      </section>
+      <section class="card c5">
+        <div class="card-title">Rééquilibrage recommandé</div>
+        ${reco.length?reco.map(r=>{const buy=r.diff>0;return`<div class="reco"><div class="reco-h"><b>${esc(r.label)}</b><span class="cmp-state ${buy?'st-under':'st-over'}">${buy?'renforcer':'alléger / pause'}</span></div><div class="reco-d">${buy?`Investir environ <b>${fE0(r.diff)}</b> pour viser ${r.targetPct.toFixed(0)} % (actuel ${r.currentPct.toFixed(1)} %).`:`Au-dessus de ${Math.abs(r.currentPct-r.targetPct).toFixed(1)} pts. Ne pas renforcer ; rediriger les apports.`}</div></div>`}).join(''):'<div class="empty">Tout est aligné sur tes cibles — rien à rééquilibrer ce mois-ci.</div>'}
+      </section>
+    </div>
+
+    <div class="g2" id="alloc-donuts" style="margin:4px 0 0"></div>
+
+    <section class="card flush"><div class="shead" style="padding:16px 18px 0"><div class="section-title" style="margin:0">Définition des cibles</div><span class="hint">éditable</span></div><div class="tbl-wrap"><table>
+      <thead><tr><th class="l">Cible</th><th class="l">Règle</th><th>Actuel</th><th>Cible</th><th>Écart €</th><th>Écart %</th><th class="l">Recommandation mécanique</th><th></th></tr></thead>
+      <tbody>${(S.targetAllocation||[]).map(t=>{const v=valFor(t),cur=baseValue?v/baseValue*100:0,target=num(t.targetPct),targetE=baseValue*target/100,diff=targetE-v,rec=Math.abs(diff)<50?'Ne rien faire':diff>0?`Acheter / renforcer ${esc(t.label)} pour environ ${fE(diff)}`:`Ne pas renforcer ${esc(t.label)} ce mois-ci`;return`<tr><td class="l"><input class="mini-input" value="${esc(t.label)}" onchange="editTarget('${t.id}','label',this.value)"></td><td class="l"><select class="mini-input" onchange="editTarget('${t.id}','matchType',this.value)"><option value="symbol" ${t.matchType==='symbol'?'selected':''}>Ticker</option><option value="type" ${t.matchType==='type'?'selected':''}>Type</option><option value="envelope" ${t.matchType==='envelope'?'selected':''}>Enveloppe</option></select><input class="mini-input" value="${esc(t.matchValue)}" onchange="editTarget('${t.id}','matchValue',this.value)" style="margin-top:5px"></td><td>${cur.toFixed(1)}%</td><td><input class="mini-input" type="number" value="${target}" onchange="editTarget('${t.id}','targetPct',this.value)"></td><td class="${diff>=0?'pos':'neg'}">${fE(diff)}</td><td class="${target-cur>=0?'pos':'neg'}">${(target-cur).toFixed(1)} pts</td><td class="l">${rec}</td><td><button class="icon-btn" onclick="delTarget('${t.id}')">×</button></td></tr>`}).join('')||`<tr><td colspan="8" class="empty">Aucune cible — ajoute WPEA, ESEE, CTO et crypto.</td></tr>`}</tbody>
+    </table></div></section>
+  </div>`;
   const targets=(S.targetAllocation||[]).filter(t=>num(t.targetPct)>0);
   if(targets.length&&baseValue>0){
     const PALETTE=['#9b8cff','#e0a458','#4f9dde','#43d39a','#e8c56a','#d4537e','#7dd3fc','#a1a1aa','#97c459','#f0997b'];
@@ -1551,12 +2044,7 @@ function addTarget(){S.targetAllocation=[...(S.targetAllocation||[]),{id:cid(),l
 function delTarget(id){S.targetAllocation=S.targetAllocation.filter(t=>t.id!==id);save();renderAllocation();}
 function renderGoals(){
   const T=totals(),g=S.goals,rate=num(g.annualReturn),monthly=num(g.monthlyInvestment);
-  // Projection : capital actuel + apport mensuel avec rendement
   function proj(y){const r=rate/100/12,n=y*12;return T.val*Math.pow(1+r,n)+(r?monthly*((Math.pow(1+r,n)-1)/r):monthly*n)}
-  // Mensuel SUPPLÉMENTAIRE nécessaire pour atteindre target en y ans, PAR RAPPORT à la projection actuelle
-  // Si proj(y) >= target => 0
-  // Sinon : on cherche x tel que proj_avec_monthly+x(y) = target
-  // gap = target - T.val*(1+r)^n; needed_monthly = gap*r/((1+r)^n-1); extra = needed_monthly - monthly
   function extraNeeded(target,y){
     const want=num(target),pj=proj(y);
     if(pj>=want||want<=0)return 0;
@@ -1565,59 +2053,52 @@ function renderGoals(){
     const totalMonthly=r?gap*r/(Math.pow(1+r,n)-1):gap/n;
     return Math.max(0,totalMonthly-monthly);
   }
-  const pct=num(g.targetTotal)>0?clamp(T.val/num(g.targetTotal)*100,0,100):0;
+  const target=num(g.targetTotal);
+  const pct=target>0?clamp(T.val/target*100,0,100):0;
+  let crossYearMain=-1;if(target>0){for(let y=0;y<=40;y++){if(proj(y)>=target){crossYearMain=y;break;}}}
   byId('content').innerHTML=`<div class="stack">
-    <div class="g4">
-      <div class="card kpi-card"><div class="kpi-lbl">Mon patrimoine aujourd'hui</div><div class="kpi-val">${fE(T.val)}</div></div>
-      <div class="card kpi-card">
-        <div class="kpi-lbl">Objectif final</div>
-        <input type="number" value="${g.targetTotal}" onchange="S.goals.targetTotal=num(this.value);save();renderGoals()">
-        <div class="progress"><span style="width:${pct}%"></span></div>
-        <div class="hint" style="margin-top:6px">${pct.toFixed(1)} % atteint</div>
+    <section class="card hero goalhero">
+      <div class="hero-main">
+        <div class="hero-label">Objectif patrimonial</div>
+        <div class="hero-val">${target>0?fE(target):'—'}</div>
+        <div class="goal-track"><span style="width:${pct}%"></span></div>
+        <div class="hint" style="margin-top:8px">${fE(T.val)} atteints · <b>${pct.toFixed(1)} %</b> de l'objectif${target>0?` · ${target>T.val?`reste ${fE(target-T.val)}`:'objectif dépassé 🎉'}`:''}</div>
+        <div class="pill ${crossYearMain>=0?'up':'dn'}" style="margin-top:14px">${target<=0?'Fixe ton objectif final':crossYearMain<0?'Hors d\'atteinte sous 40 ans à ce rythme':crossYearMain===0?'Objectif déjà atteint':`Atteint vers ${new Date().getFullYear()+crossYearMain} · dans ${crossYearMain} an${crossYearMain>1?'s':''}`}</div>
       </div>
-      <div class="card kpi-card">
-        <div class="kpi-lbl">J'investis chaque mois</div>
-        <input type="number" value="${monthly}" onchange="S.goals.monthlyInvestment=num(this.value);save();renderGoals()">
+      <div class="hero-side">
+        <div class="goal-params">
+          <div class="fl"><label>Objectif final (€)</label><input type="number" value="${g.targetTotal}" onchange="S.goals.targetTotal=num(this.value);save();renderGoals()"></div>
+          <div class="fl"><label>Apport mensuel (€)</label><input type="number" value="${monthly}" onchange="S.goals.monthlyInvestment=num(this.value);save();renderGoals()"></div>
+          <div class="fl"><label>Rendement annuel estimé (%)</label><input type="number" value="${rate}" onchange="S.goals.annualReturn=num(this.value);save();renderGoals()"></div>
+        </div>
+        <div class="note" style="margin-top:10px">Projection : capital actuel composé + ${fE0(monthly)}/mois à ${rate} %/an.</div>
       </div>
-      <div class="card kpi-card">
-        <div class="kpi-lbl">Rendement annuel estimé (%)</div>
-        <input type="number" value="${rate}" onchange="S.goals.annualReturn=num(this.value);save();renderGoals()">
-      </div>
-    </div>
-    <div class="card">
-      <div class="toolbar"><div>
-        <div class="card-title" style="margin:0">Projection sur 20 ans</div>
-        <div class="hint">Si tu continues à investir ${fE0(monthly)}/mois avec ${rate} %/an de rendement moyen.</div>
-      </div></div>
+    </section>
+
+    <section class="card">
+      <div class="panel-head"><div class="card-title" style="margin:0">Trajectoire sur 20 ans</div><span class="hint">étoile = année d'atteinte de l'objectif</span></div>
       <div class="chart-wrap"><canvas id="goals-chart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Mes objectifs par échéance</div>
-      <p class="hint">Saisis le montant que tu veux avoir à chaque date. L'app te dit si tu vas l'atteindre avec ton rythme actuel, et combien il faudrait ajouter par mois si non.</p>
-      <div class="tbl-wrap"><table>
-        <thead><tr>
-          <th class="l">Échéance</th>
-          <th>Ma projection</th>
-          <th>Mon objectif</th>
-          <th>Résultat</th>
-          <th>Mensuel à ajouter</th>
-        </tr></thead>
-        <tbody>${[1,5,10,20].map(y=>{
-          const target=num(g.horizonTargets?.[y]);
-          const pj=Math.round(proj(y));
-          const extra=extraNeeded(target,y);
-          const ok=target>0&&pj>=target;
-          const noTarget=target<=0;
-          return`<tr>
-            <td class="l"><b>${y} an${y>1?'s':''}</b></td>
-            <td>${fE0(pj)}</td>
-            <td><input class="mini-input" type="number" value="${target||''}" placeholder="Fixe un objectif" onchange="S.goals.horizonTargets=S.goals.horizonTargets||{};S.goals.horizonTargets['${y}']=num(this.value);save();renderGoals()"></td>
-            <td>${noTarget?'<span class="muted">—</span>':ok?'<span class="pos">✓ objectif atteint</span>':'<span class="neg">✗ insuffisant</span>'}</td>
-            <td>${noTarget||ok?'<span class="muted">0 €</span>':('<b>+'+fE0(extra)+'</b>/mois')}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table></div>
-    </div>
+    </section>
+
+    <section class="card">
+      <div class="card-title">Couverture par horizon</div>
+      <p class="hint">Pour chaque échéance : ta projection, ton objectif, le taux de couverture et l'effort mensuel additionnel si tu es en retard.</p>
+      ${[1,5,10,20].map(y=>{
+        const tg=num(g.horizonTargets?.[y]);
+        const pj=Math.round(proj(y));
+        const extra=extraNeeded(tg,y);
+        const ok=tg>0&&pj>=tg;
+        const noTarget=tg<=0;
+        const cov=tg>0?clamp(pj/tg*100,0,100):0;
+        return`<div class="hrow">
+          <div class="hrow-y"><b>${y} an${y>1?'s':''}</b><span class="muted">${new Date().getFullYear()+y}</span></div>
+          <div class="hrow-proj"><span>Projection</span><b>${fE0(pj)}</b></div>
+          <div class="hrow-obj"><span>Objectif</span><input class="mini-input" type="number" value="${tg||''}" placeholder="à fixer" onchange="S.goals.horizonTargets=S.goals.horizonTargets||{};S.goals.horizonTargets['${y}']=num(this.value);save();renderGoals()"></div>
+          <div class="hrow-cov">${noTarget?'<span class="muted" style="font-size:12px">définis un objectif</span>':`<div class="cmp-track"><span class="cmp-fill${ok?'':' of'}" style="width:${cov}%;${ok?'background:var(--green)':''}"></span></div><span class="muted" style="font-size:11px">${cov.toFixed(0)} % couvert</span>`}</div>
+          <span class="stchip ${noTarget?'':ok?'ok':'late'}">${noTarget?'—':ok?'✓ atteint':`+${fE0(extra)}/mois`}</span>
+        </div>`;
+      }).join('')}
+    </section>
   </div>`;
   killCharts();
   const el=byId('goals-chart');
@@ -1633,7 +2114,6 @@ function renderGoals(){
       chartFallback('goals-chart',[dsProj,dsInv],goalLabels);
       return;
     }
-    // Année où la projection atteint l'objectif
     let crossYear=-1;
     if(targetTotal>0){for(let y=0;y<=20;y++){if(proj(y)>=targetTotal){crossYear=y;break;}}}
     const crossData=years.map(y=>y===crossYear?targetTotal:null);
@@ -1654,7 +2134,6 @@ function renderGoals(){
     }));
   }
 }
-
 function renderSettings(){
   byId('content').innerHTML=`<div class="stack" style="max-width:680px">
     <div class="card">
@@ -1683,6 +2162,16 @@ function renderSettings(){
         <div class="fl"><label>1 CHF = ? €</label><input type="number" step="0.0001" value="${S.fx.CHF}" onchange="S.fx.CHF=num(this.value);S.fxUpdated=new Date().toISOString();save();renderSettings();renderSpotBar()"></div>
       </div>
       <div class="note">1 USD = ${S.fx.USD?S.fx.USD.toFixed(4):'—'} € · 1 CHF = ${S.fx.CHF?S.fx.CHF.toFixed(4):'—'} € · Or: ${S.goldSpot?fE(S.goldSpot):'—'}/oz · Mis à jour: ${S.fxUpdated?ago(S.fxUpdated):'jamais (actualiser)'}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Seuils & objectifs de risque</div>
+      <p class="hint">Ces valeurs pilotent la santé du plan, les alertes d'exposition et la jauge de réserve sur le tableau de bord.</p>
+      <div class="fgrid" style="margin-top:14px">
+        <div class="fl"><label>Réserve de sécurité cible (€)</label><input type="number" value="${num(S.settings.securityReserveTarget)}" onchange="S.settings.securityReserveTarget=num(this.value);save();renderSettings()"></div>
+        <div class="fl"><label>Seuil position max (% du patrimoine)</label><input type="number" value="${num(S.settings.positionThreshold)}" onchange="S.settings.positionThreshold=num(this.value);save();renderSettings()"></div>
+        <div class="fl"><label>Seuil crypto max (% du piloté)</label><input type="number" value="${num(S.settings.cryptoThreshold)}" onchange="S.settings.cryptoThreshold=num(this.value);save();renderSettings()"></div>
+      </div>
+      <div class="note" style="margin-top:10px">Réserve actuelle : montant des comptes de type « Réserve de sécurité » déclarés dans Portefeuille. Ajuste la cible ici, puis alimente la réserve via tes comptes.</div>
     </div>
     ${renderSnapshotManager()}
   </div>`;
