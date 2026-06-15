@@ -645,6 +645,7 @@ const KNOWN={
   PANX:{name:'Nasdaq 100 Amundi PEA',type:'etf',cur:'EUR',yahoo:'PUST.PA'},
   SPY:{name:'S&P 500 SPDR SPY',type:'etf',cur:'USD',yahoo:'SPY'},
   QQQ:{name:'Nasdaq 100 Invesco',type:'etf',cur:'USD',yahoo:'QQQ'},
+  SPCXX:{name:'SpaceX (xStock tokenisé)',type:'stock',cur:'EUR',cg:'spacex-xstocks'},
   VWCE:{name:'FTSE All-World Vanguard',type:'etf',cur:'EUR',yahoo:'VWCE.DE'},
   BTC:{name:'Bitcoin',type:'crypto',cur:'EUR',cg:'bitcoin'},
   ETH:{name:'Ethereum',type:'crypto',cur:'EUR',cg:'ethereum'},
@@ -853,7 +854,8 @@ const RWA={
   PYPL:'paypal-ondo-tokenized-stock',MU:'micron-technology-ondo-tokenized-stock',MRVL:'marvell-technology-ondo-tokenized-stock',
   PANW:'palo-alto-networks-ondo-tokenized-stock',SMCI:'super-micro-computer-ondo-tokenized-stock',MSTR:'microstrategy-ondo-tokenized-stock',
   CRCL:'circle-internet-group-ondo-tokenized-stock',IBM:'ibm-ondo-tokenized-stock',CSCO:'cisco-systems-ondo-tokenized-stock',
-  SHOP:'shopify-ondo-tokenized-stock',LMT:'lockheed-ondo-tokenized-stock',GE:'general-electric-ondo-tokenized-stock'};
+  SHOP:'shopify-ondo-tokenized-stock',LMT:'lockheed-ondo-tokenized-stock',GE:'general-electric-ondo-tokenized-stock',
+  SPCXX:'spacex-xstocks'};
 const COLORS={etf:'#9b8cff',stock:'#e0a458',crypto:'#4f9dde',gold:'#e8c56a',cash:'#7d8694',assurance:'#43d39a',pel:'#cdb78a',pillar:'#7dd3fc',other:'#a1a1aa'};
 const DEFAULT_EXPOSURE={WPEA:{USD:65,EUR:20,OTHER:15},AO00:{USD:65,EUR:20,OTHER:15},ESEE:{USD:100},CW8:{USD:65,EUR:20,OTHER:15},IWDA:{USD:65,EUR:20,OTHER:15},SPY:{USD:100},QQQ:{USD:100}};
 const byId=id=>document.getElementById(id);
@@ -1779,10 +1781,12 @@ function myMarketItems(){
     ...(!hasSym('AO00')&&!hasSym('WPEA')?[{label:'MSCI World iShares Swap PEA',sym:'AO00',localSym:'AO00',kind:'etf',cur:'EUR'}]:[]),
     ...(!hasSym('ESEE')?[{label:'S&P 500 BNP Easy PEA',sym:'ESEE',localSym:'ESEE',kind:'etf',cur:'EUR'}]:[])
   ]);
-  const stocks=uniqueMarketItems(
-    pos.filter(p=>p.type==='stock')
-       .map(p=>({label:p.name,sym:p.sym,localSym:p.sym,kind:'stock',cur:p.cur||'USD'}))
-  );
+  const stocks=uniqueMarketItems([
+    ...pos.filter(p=>p.type==='stock')
+       .map(p=>({label:p.name,sym:p.sym,localSym:p.sym,kind:'stock',cur:p.cur||'USD'})),
+    // SpaceX tokenisé (xStock) garanti en suivi auto, prix converti en EUR
+    {label:'SpaceX (xStock tokenisé)',sym:'SPCXX',localSym:'SPCXX',kind:'stock',cur:'EUR'}
+  ]);
   const CG={BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',XRP:'ripple',ADA:'cardano',LINK:'chainlink',DOT:'polkadot',AVAX:'avalanche-2',MATIC:'matic-network',UNI:'uniswap',LTC:'litecoin'};
   const crypto=uniqueMarketItems([
     {label:'Bitcoin', sym:'BTC',cgId:'bitcoin', localSym:'BTC',kind:'crypto',cur:'EUR'},
