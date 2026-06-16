@@ -625,7 +625,7 @@ tbody tr:hover td{background:var(--surface2)}
   </aside>
   <main class="main">
     <div class="topbar">
-      <div><div class="page-title" id="page-title">Vue d'ensemble</div><div class="refresh-meta"><span class="odot" id="odot"></span><span id="refresh-meta">Dernier refresh : jamais · auto 15 min</span></div></div>
+      <div><div class="page-title" id="page-title">Vue d'ensemble</div><div class="refresh-meta"><span class="odot" id="odot"></span><span id="refresh-meta">Dernier refresh : jamais · auto 4h</span></div></div>
       <button class="btn btn-p" id="refresh-btn" onclick="doRefresh()">↻ Actualiser</button>
     </div>
     <div class="spotbar" id="spotbar"></div>
@@ -1762,15 +1762,10 @@ function saveIncome(){const gross=num(byId('igross').value),tax=num(byId('itax')
 function delIncome(id){if(!confirm('Supprimer ce revenu ?'))return;S.income=S.income.filter(i=>i.id!==id);save();renderIncome();}
 function isFileMode(){try{return String(window?.location?.protocol||location?.protocol||'')==='file:'}catch(e){return true}}
 function liveNetworkAllowed(){return !isFileMode()||S.settings?.allowFileLive===true}
-async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fxOk=await fetchFx();if(fxOk)n++;const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={bitcoin:'BTC',ethereum:'ETH',solana:'SOL','pax-gold':'XAU'};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});try{const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`).then(r=>r.json());Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';const price=fromE(j[id].eur,cur);S.prices[sym.toLowerCase()]={price,cur,src:'live',at:now};if(sym==='XAU'){S.goldSpot=j[id].eur;S.goldUpdated=now;}n++;}});}catch(e){}let goldNeeded=pos.some(p=>p.type==='gold')||(S.accounts||[]).some(a=>a.type==='gold')||true;if(goldNeeded){let eur=null;try{const gj=await(await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=eur')).json();if(gj?.['pax-gold']?.eur)eur=gj['pax-gold'].eur;}catch(e){}if(eur){S.goldSpot=eur;S.goldUpdated=now;S.prices.xau={price:eur,cur:'EUR',src:'live',at:now};n++}}// ETF + actions FR/US via Yahoo Finance Chart (1 seul fichier HTML, sans backend Netlify)
-  const marketSyms=[...new Set([
-    ...pos.filter(p=>['etf','stock'].includes(p.type)).map(p=>p.sym),
-    'AO00','ESEE'
-  ])];
-  const marketOut=await fetchMarketPrices(marketSyms);
-  n+=Object.keys(marketOut).length;
-  S.lastRefresh=now;createSnapshot(false);save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh : ${ago(now)} · auto 15 min`;renderSpotBar();renderCurrent();toast(n?`${n} prix mis à jour + snapshot créé`:'Serveurs inaccessibles: prix manuels conservés');}
-setInterval(()=>{if(navigator.onLine&&!uiBusy())doRefresh()},15*60*1000);
+async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fxOk=await fetchFx();if(fxOk)n++;const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={bitcoin:'BTC',ethereum:'ETH',solana:'SOL','pax-gold':'XAU'};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});try{const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`).then(r=>r.json());Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';const price=fromE(j[id].eur,cur);S.prices[sym.toLowerCase()]={price,cur,src:'live',at:now};if(sym==='XAU'){S.goldSpot=j[id].eur;S.goldUpdated=now;}n++;}});}catch(e){}let goldNeeded=pos.some(p=>p.type==='gold')||(S.accounts||[]).some(a=>a.type==='gold')||true;if(goldNeeded){let eur=null;try{const gj=await(await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=eur')).json();if(gj?.['pax-gold']?.eur)eur=gj['pax-gold'].eur;}catch(e){}if(eur){S.goldSpot=eur;S.goldUpdated=now;S.prices.xau={price:eur,cur:'EUR',src:'live',at:now};n++}}// ETF + actions via tokens RWA CoinGecko (USD→EUR)
+  const rwaSyms=pos.filter(p=>['etf','stock'].includes(p.type)&&RWA[p.sym]).map(p=>p.sym);
+  if(rwaSyms.length){const rwaOut=await fetchRwaPrices(rwaSyms);n+=Object.keys(rwaOut).length;}S.lastRefresh=now;createSnapshot(false);save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh : ${ago(now)} · auto 4h`;renderSpotBar();renderCurrent();toast(n?`${n} prix mis à jour + snapshot créé`:'Serveurs inaccessibles: prix manuels conservés');}
+setInterval(()=>{if(navigator.onLine&&!uiBusy())doRefresh()},4*60*60*1000);
 // Taux de change toutes les heures (EUR/USD/CHF critique pour Nathan)
 setInterval(()=>{if(navigator.onLine)fetchFx()},60*60*1000);
 function qid(ticker){return 'mc-'+String(ticker).replace(/[^a-z0-9]/gi,'_')}
@@ -1814,7 +1809,7 @@ async function renderMarket(force=false){
   byId('content').innerHTML=`<div class="stack">
     <div class="card"><div class="toolbar"><div>
       <div class="card-title" style="margin:0">Mes marchés</div>
-      <div class="hint">Crypto et or via CoinGecko. ETF PEA, actions françaises et actions US via Yahoo Finance Chart. Un clic permet toujours de corriger un prix à la main.</div>
+      <div class="hint">Crypto et or en direct (CoinGecko). ETF et actions : clique sur un prix pour le saisir à la main.</div>
     </div><div class="fa">
       <button class="btn btn-p" onclick="renderMarket(true)">↻ Actualiser</button>
     </div></div></div>
@@ -1873,22 +1868,22 @@ async function renderMarket(force=false){
     }catch(e){cryptoOffline();}
   }
 
-  // ETF + actions FR/US : prix auto via Yahoo Finance Chart, fallback manuel
-  const stockItems=sections.flatMap(s=>s.items).filter(it=>it.kind!=='crypto'&&marketTickerFor(it.localSym||it.sym));
+  // ETF + actions : prix auto via tokens RWA (CoinGecko, USD→EUR), fallback manuel
+  const stockItems=sections.flatMap(s=>s.items).filter(it=>it.kind!=='crypto'&&RWA[it.sym]);
   if(stockItems.length){
-    const syms=stockItems.map(it=>it.localSym||it.sym);
-    const marketOut=await fetchMarketPrices(syms);
+    const syms=stockItems.map(it=>it.sym);
+    const rwaOut=await fetchRwaPrices(syms);
     stockItems.forEach(it=>{
       const card=byId(qid(it.sym));if(!card)return;
-      const r=marketOut[it.localSym||it.sym];
+      const r=rwaOut[it.sym];
       if(r){
         card.querySelector('.mc-price').textContent=fM(r.price,r.cur||'EUR');
         const ld=card.querySelector('.mc-loading');
-        if(r.change!=null){ld.className='mc-chg '+(r.change>=0?'pos':'neg');ld.textContent=`${r.change>=0?'▲ +':'▼ '}${r.change.toFixed(2)} %`;}
-        else{ld.className='mc-loading';ld.textContent='Dernier prix coté';}
-        card.querySelector('.mc-source').textContent=`Yahoo Finance · ${r.ticker}`;
+        if(r.change!=null){ld.className='mc-chg '+(r.change>=0?'pos':'neg');ld.textContent=`${r.change>=0?'▲ +':'▼ '}${r.change.toFixed(2)} % (24h)`;}
+        else{ld.className='mc-loading';ld.textContent='En direct (token)';}
+        card.querySelector('.mc-source').textContent='CoinGecko RWA · approx.';
         card.querySelector('.badge').className='badge b-live';
-        card.querySelector('.badge').textContent='live';
+        card.querySelector('.badge').textContent='auto';
       } else {
         const fb=S.prices[String(it.localSym||it.sym).toLowerCase()];
         const ld=card.querySelector('.mc-loading');
@@ -2241,52 +2236,34 @@ function toast(msg){const el=byId('toast');el.textContent=msg;el.classList.add('
 function updateOnline(){byId('odot').style.background=navigator.onLine?'var(--green)':'var(--red)'}
 function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme||'dark');byId('theme-label').textContent=(S.theme||'dark')==='dark'?'Mode clair':'Mode sombre'}
 window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);
-applyTheme();updateOnline();byId('refresh-meta').textContent=`Dernier refresh : ${ago(S.lastRefresh)} · auto 15 min`;renderSpotBar();createSnapshot(false);renderDashboard();
+applyTheme();updateOnline();byId('refresh-meta').textContent=`Dernier refresh : ${ago(S.lastRefresh)} · auto 4h`;renderSpotBar();createSnapshot(false);renderDashboard();
 // Chargement live initial (crypto + or) au démarrage, sans bloquer l'affichage
-function marketTickerFor(sym){
-  const k=String(sym||'').toUpperCase();
-  const info=assetCatalog()[k]||KNOWN[k]||{};
-  if(info.source==='manual')return null;
-  // Si l'actif a un mapping Yahoo officiel, on l'utilise. Sinon, pour une action US simple, le ticker suffit.
-  // Si l'actif n'a qu'un ID CoinGecko (ex: token xStock), on ne l'envoie pas à Yahoo.
-  if(info.yahoo)return info.yahoo;
-  if(info.cg)return null;
-  return k;
-}
-function yahooChartUrl(ticker){return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`;}
-async function fetchYahooChart(ticker){
-  const r=await fetch(yahooChartUrl(ticker),{cache:'no-store'});
-  if(!r.ok)throw new Error('Yahoo HTTP '+r.status);
-  const j=await r.json();
-  const res=j?.chart?.result?.[0];
-  if(!res)throw new Error('Yahoo empty');
-  const meta=res.meta||{},quote=res.indicators?.quote?.[0]||{};
-  const closes=(quote.close||[]).filter(v=>v!=null&&Number.isFinite(Number(v))).map(Number);
-  let price=Number(meta.regularMarketPrice);
-  if(!Number.isFinite(price)||price<=0)price=closes[closes.length-1];
-  if(!Number.isFinite(price)||price<=0)throw new Error('Yahoo price missing');
-  const prev=Number(meta.chartPreviousClose||meta.previousClose||closes[Math.max(0,closes.length-2)]||0);
-  const cur=meta.currency||'EUR';
-  const at=meta.regularMarketTime?new Date(meta.regularMarketTime*1000).toISOString():new Date().toISOString();
-  const change=prev>0?((price-prev)/prev*100):null;
-  return{price,cur,change,at,ticker,provider:'Yahoo Finance'};
-}
-async function fetchMarketPrices(symbols){
+async function fetchRwaPrices(symbols){
+  // Récupère les prix tokenisés (actions/ETF) via CoinGecko, en USD, convertit en EUR
+  const ids=[],map={};
+  (symbols||Object.keys(RWA)).forEach(s=>{const id=RWA[s];if(id){ids.push(id);map[id]=s;}});
+  if(!ids.length)return {};
   const out={};
-  const list=[...new Set((symbols||[]).map(s=>String(s||'').toUpperCase()).filter(Boolean))];
-  for(const local of list){
-    const ticker=marketTickerFor(local);
-    if(!ticker)continue;
-    try{
-      const q=await fetchYahooChart(ticker);
-      const entry={price:q.price,cur:q.cur,src:'live',at:q.at,provider:'Yahoo Finance',marketTicker:ticker};
-      [local,...(PRICE_ALIASES[local]||[])].forEach(k=>{S.prices[k.toLowerCase()]={...entry};});
-      out[local]=q;
-    }catch(e){console.warn('Market fetch error',local,ticker,e);}
-    // Evite de bombarder Yahoo si tu as beaucoup de lignes.
-    await new Promise(r=>setTimeout(r,140));
-  }
-  if(Object.keys(out).length){save();renderSpotBar();}
+  try{
+    // CoinGecko limite l'URL : on découpe par lots de 30
+    for(let i=0;i<ids.length;i+=30){
+      const batch=ids.slice(i,i+30);
+      const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${batch.join(',')}&vs_currencies=usd&include_24hr_change=true`).then(r=>r.json());
+      const now=new Date().toISOString();
+      batch.forEach(id=>{
+        if(j?.[id]?.usd){
+          const sym=map[id];
+          const usd=j[id].usd;
+          const eur=usd*(S.fx.USD||0.92); // USD→EUR
+          // On stocke TOUJOURS en EUR pour l'affichage uniforme
+          S.prices[sym.toLowerCase()]={price:eur,cur:'EUR',src:'live',at:now};
+          out[sym]={price:eur,cur:'EUR',change:j[id].usd_24h_change};
+        }
+      });
+      if(i+30<ids.length)await new Promise(r=>setTimeout(r,1500));
+    }
+    save();renderSpotBar();
+  }catch(e){console.warn('RWA fetch error',e);}
   return out;
 }
 async function fetchFx(){
