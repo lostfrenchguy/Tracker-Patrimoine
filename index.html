@@ -540,6 +540,9 @@ tbody tr:hover td{background:var(--surface2)}
 .goal-track{height:12px;background:var(--surface3);border-radius:99px;overflow:hidden;margin-top:14px}
 .goal-track>span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .6s ease}
 .goal-params{display:flex;flex-direction:column;gap:12px}
+.goal-split{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.goal-split span{display:block;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.goal-split b{display:block;font-family:var(--font-mono);font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hrow{display:grid;grid-template-columns:90px 1fr 1.1fr 1.3fr auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}
 .hrow:last-child{border-bottom:none}
 .hrow-y b{font-size:16px;display:block}.hrow-y span{font-size:11px}
@@ -580,6 +583,7 @@ tbody tr:hover td{background:var(--surface2)}
   .hrow{grid-template-columns:1fr 1fr;gap:10px}
   .hrow-cov{grid-column:span 2}
   .goal-params{gap:10px}
+  .goal-split{grid-template-columns:1fr}
   .dcahero{gap:18px}
 }
 </style>
@@ -896,7 +900,7 @@ function DEF(){return{
   fx:{EUR:1,USD:0.92,CHF:1.06},
   fxUpdated:null,goldSpot:null,goldUpdated:null,lastRefresh:null,
   dca:{lines:[{id:cid(),name:'MSCI World',sym:'WPEA',type:'etf',envelope:'PEA',platform:'PEA',cur:'EUR',plannedAmt:700,frequency:'Mensuelle',day:5,active:true},{id:cid(),name:'S&P 500',sym:'ESEE',type:'etf',envelope:'PEA',platform:'PEA',cur:'EUR',plannedAmt:300,frequency:'Mensuelle',day:5,active:true},{id:cid(),name:'Bitcoin',sym:'BTC',type:'crypto',envelope:'Crypto',platform:'Coinbase',cur:'EUR',plannedAmt:100,frequency:'Mensuelle',day:10,active:true}],executions:[],log:[],done:{}},
-  goals:{targetTotal:100000,targetReserve:9000,monthlyInvestment:1000,annualReturn:6,horizonTargets:{1:25000,5:75000,10:150000,20:500000}},
+goals:{targetTotal:100000,targetReserve:9000,monthlyInvestment:1000,annualReturn:6,returnBase:null,horizonTargets:{1:25000,5:75000,10:150000,20:500000}},
   snapshots:[],
   income:[],
   settings:{positionThreshold:25,cryptoThreshold:10,securityReserveTarget:9000,baseCurrency:'EUR',allocationBase:'strategy',economicExposure:DEFAULT_EXPOSURE},
@@ -2048,12 +2052,22 @@ function addTarget(){S.targetAllocation=[...(S.targetAllocation||[]),{id:cid(),l
 function delTarget(id){S.targetAllocation=S.targetAllocation.filter(t=>t.id!==id);save();renderAllocation();}
 function renderGoals(){
   const T=totals(),g=S.goals,rate=num(g.annualReturn),monthly=num(g.monthlyInvestment);
-  function proj(y){const r=rate/100/12,n=y*12;return T.val*Math.pow(1+r,n)+(r?monthly*((Math.pow(1+r,n)-1)/r):monthly*n)}
+  // Base de projection : SEUL le capital réellement investi (ETF/actions/crypto, valeur actuelle) compose à `rate`.
+  // Le reste du patrimoine (cash piloté + épargne gelée AV/PEL/3e pilier) est tenu à plat — pas projeté à 6 %.
+  const investedBase=T.marketValGross;              // capital piloté qui travaille
+  const cashOut=Math.max(0,T.val-investedBase);     // hors marché : cash + épargne gelée
+  // Valeur future de la seule poche investie + apports mensuels futurs
+  function fvInvested(y){const r=rate/100/12,n=y*12;return investedBase*Math.pow(1+r,n)+(r?monthly*((Math.pow(1+r,n)-1)/r):monthly*n)}
+  // Patrimoine total projeté = poche investie composée + cash tenu à plat
+  function proj(y){return fvInvested(y)+cashOut}
   function extraNeeded(target,y){
     const want=num(target),pj=proj(y);
     if(pj>=want||want<=0)return 0;
-    const r=rate/100/12,n=y*12,fv=T.val*Math.pow(1+r,n);
-    const gap=want-fv;
+    const r=rate/100/12,n=y*12;
+    // Partie fixe (indépendante de l'apport mensuel) : invested composé + cash à plat
+    const fixed=investedBase*Math.pow(1+r,n)+cashOut;
+    const gap=want-fixed;
+    if(gap<=0)return 0;
     const totalMonthly=r?gap*r/(Math.pow(1+r,n)-1):gap/n;
     return Math.max(0,totalMonthly-monthly);
   }
@@ -2068,6 +2082,11 @@ function renderGoals(){
         <div class="goal-track"><span style="width:${pct}%"></span></div>
         <div class="hint" style="margin-top:8px">${fE(T.val)} atteints · <b>${pct.toFixed(1)} %</b> de l'objectif${target>0?` · ${target>T.val?`reste ${fE(target-T.val)}`:'objectif dépassé 🎉'}`:''}</div>
         <div class="pill ${crossYearMain>=0?'up':'dn'}" style="margin-top:14px">${target<=0?'Fixe ton objectif final':crossYearMain<0?'Hors d\'atteinte sous 40 ans à ce rythme':crossYearMain===0?'Objectif déjà atteint':`Atteint vers ${new Date().getFullYear()+crossYearMain} · dans ${crossYearMain} an${crossYearMain>1?'s':''}`}</div>
+        <div class="goal-split">
+          <div><span>Patrimoine total</span><b>${fE0(T.val)}</b></div>
+          <div><span>Capital investi (composé)</span><b>${fE0(investedBase)}</b></div>
+          <div><span>Hors projection</span><b>${fE0(cashOut)}</b></div>
+        </div>
       </div>
       <div class="hero-side">
         <div class="goal-params">
@@ -2075,7 +2094,7 @@ function renderGoals(){
           <div class="fl"><label>Apport mensuel (€)</label><input type="number" value="${monthly}" onchange="S.goals.monthlyInvestment=num(this.value);save();renderGoals()"></div>
           <div class="fl"><label>Rendement annuel estimé (%)</label><input type="number" value="${rate}" onchange="S.goals.annualReturn=num(this.value);save();renderGoals()"></div>
         </div>
-        <div class="note" style="margin-top:10px">Projection : capital actuel composé + ${fE0(monthly)}/mois à ${rate} %/an.</div>
+        <div class="note" style="margin-top:10px">Projection : <b>${fE0(investedBase)}</b> investi composé à ${rate} %/an + ${fE0(monthly)}/mois d'apports. Le cash hors marché (${fE0(cashOut)}) est compté dans le patrimoine mais tenu à plat (pas de rendement).</div>
       </div>
     </section>
 
@@ -2112,8 +2131,8 @@ function renderGoals(){
     const investedData=years.map(y=>Math.round(T.val+monthly*12*y));
     const targetTotal=num(g.targetTotal);
     const goalLabels=years.map(y=>y===0?'Auj.':(y+' an'+(y>1?'s':'')));
-    const dsProj={label:'Projection (avec rendement)',data:projData,borderColor:'#cdb78a',backgroundColor:'rgba(205,183,138,.12)',fill:true,tension:.3,pointRadius:0,borderWidth:2.5};
-    const dsInv={label:'Capital investi (sans rendement)',data:investedData,borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.3,pointRadius:0,borderWidth:1.5};
+    const dsProj={label:'Patrimoine projeté (investi composé + cash à plat)',data:projData,borderColor:'#cdb78a',backgroundColor:'rgba(205,183,138,.12)',fill:true,tension:.3,pointRadius:0,borderWidth:2.5};
+    const dsInv={label:'Sans rendement (apports cumulés)',data:investedData,borderColor:'#4f9dde',backgroundColor:'transparent',fill:false,tension:.3,pointRadius:0,borderWidth:1.5};
     if(!chartAvailable()){
       chartFallback('goals-chart',[dsProj,dsInv],goalLabels);
       return;
