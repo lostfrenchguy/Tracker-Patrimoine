@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Patrimoine · Cockpit privé</title>
 <meta name="theme-color" content="#07090e"/>
+<script>try{const _t=JSON.parse(localStorage.getItem('tracker_patrimoine_v6')||'{}').theme;if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 <meta name="color-scheme" content="dark light"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090e'/%3E%3Cpath d='M16 5l9 11-9 11-9-11z' fill='none' stroke='%23d2b985' stroke-width='1.6'/%3E%3Cpath d='M16 10.5l4.6 5.5-4.6 5.5-4.6-5.5z' fill='%23d2b985' opacity='.85'/%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -638,6 +639,7 @@ tbody tr:hover td{background:var(--surface2)}
 </div>
 <div id="toast"></div>
 <input class="file-input" id="backup-file" type="file" accept="application/json,.json" onchange="importBackupFile(this.files[0])"/>
+<input class="file-input" id="csv-file" type="file" accept=".csv,text/csv" onchange="importCsvFile(this.files[0])"/>
 <script>
 const KNOWN={
   AO00:{name:'MSCI World iShares Swap PEA',type:'etf',cur:'EUR',yahoo:'WPEA.PA',isin:'IE0002XZSHO1'},
@@ -866,7 +868,7 @@ const byId=id=>document.getElementById(id);
 const cid=()=>Math.random().toString(36).slice(2,10);
 const today=()=>new Date().toISOString().slice(0,10);
 const monthNow=()=>new Date().toISOString().slice(0,7);
-const num=v=>Number.isFinite(parseFloat(v))?parseFloat(v):0;
+const num=v=>{let s=String(v??'').replace(/[\s\u202f\u00a0]/g,'');if(s.includes(',')&&!s.includes('.'))s=s.replace(',','.');const n=parseFloat(s);return Number.isFinite(n)?n:0;};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const fE=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2}).format(num(n));
@@ -908,10 +910,10 @@ goals:{targetTotal:100000,targetReserve:9000,monthlyInvestment:1000,annualReturn
   theme:'dark'
 };}
 function inferEnvelope(x){if(x.envelope)return x.envelope;if(x.type==='crypto')return'Crypto';if(x.type==='gold')return'Or physique';if(x.type==='stock')return'CTO';if(['PEA','CTO'].includes(x.platform))return x.platform;if(['Coinbase','Binance','Kraken'].includes(x.platform))return'Crypto';return'Autre';}
-function normTx(t){const info=KNOWN[String(t.sym||'').toUpperCase()]||{};return{id:t.id||cid(),date:t.date||today(),name:t.name||info.name||'',sym:String(t.sym||'').toUpperCase(),type:t.type||info.type||'other',envelope:inferEnvelope(t),platform:t.platform||'',cur:t.cur||info.cur||'EUR',op:t.op||'buy',qty:num(t.qty),price:num(t.price),fees:num(t.fees),buyFees:num(t.buyFees),sellFees:num(t.sellFees),fxFees:num(t.fxFees),spreadFees:num(t.spreadFees),brokerFees:num(t.brokerFees),custodyFees:num(t.custodyFees),ter:num(t.ter),goldWeight:num(t.goldWeight),goldUnit:t.goldUnit||'g',goldKind:t.goldKind||'',spotPrice:num(t.spotPrice),comment:t.comment||''};}
+function normTx(t){const info=KNOWN[String(t.sym||'').toUpperCase()]||{};return{id:t.id||cid(),date:t.date||today(),name:t.name||info.name||'',sym:String(t.sym||'').toUpperCase(),type:t.type||info.type||'other',envelope:inferEnvelope(t),platform:t.platform||'',cur:t.cur||info.cur||'EUR',op:t.op||'buy',qty:num(t.qty),price:num(t.price),fees:num(t.fees),buyFees:num(t.buyFees),sellFees:num(t.sellFees),fxFees:num(t.fxFees),spreadFees:num(t.spreadFees),brokerFees:num(t.brokerFees),custodyFees:num(t.custodyFees),ter:num(t.ter),goldWeight:num(t.goldWeight),goldUnit:t.goldUnit||'g',goldKind:t.goldKind||'',spotPrice:num(t.spotPrice),comment:t.comment||'',...(t.realizedPl!=null?{realizedPl:num(t.realizedPl),proceeds:num(t.proceeds),avgCost:num(t.avgCost)}:{})};}
 function defaultAccountStatus(a){if(a.status)return a.status;if(['assurance','pillar','pel'].includes(a.type)||['Assurance-vie','3e pilier','PEL'].includes(a.envelope))return'frozen';if(a.type==='platform')return'active';return'watch';}
 function normAccount(a){return{id:a.id||cid(),name:a.name||'Compte',type:a.type||'other',envelope:a.envelope||'Autre',cur:a.cur||'EUR',amount:num(a.amount),institution:a.institution||a.platform||'',updatedAt:a.updatedAt||today(),status:defaultAccountStatus(a),comment:a.comment||''};}
-function migrate(raw){const d=DEF();if(!raw||typeof raw!=='object')return d;const s={...d,...raw};s.schemaVersion=6;s.transactions=Array.isArray(raw.transactions)?raw.transactions.map(normTx):d.transactions;s.accounts=Array.isArray(raw.accounts)?raw.accounts.map(normAccount):d.accounts;s.customAssets=Array.isArray(raw.customAssets)?raw.customAssets.map(a=>({...a,id:a.id||cid(),ticker:String(a.ticker||a.sym||'').toUpperCase(),cur:a.cur||'EUR',type:a.type||'other',priceSource:a.priceSource||'manual'})):d.customAssets;s.prices=raw.prices&&typeof raw.prices==='object'?raw.prices:{};s.fx={...d.fx,...(raw.fx||{})};s.dca={...d.dca,...(raw.dca||{})};if(Array.isArray(raw.dca?.lines)){s.dca.lines=raw.dca.lines.map(l=>({id:l.id||cid(),name:l.name||l.asset||'',sym:String(l.sym||'').toUpperCase(),type:l.type||'etf',envelope:l.envelope||inferEnvelope(l),platform:l.platform||'PEA',cur:l.cur||'EUR',plannedAmt:num(l.plannedAmt||l.amt),frequency:l.frequency||'Mensuelle',day:num(l.day)||5,active:l.active!==false}));}s.dca.executions=Array.isArray(raw.dca?.executions)?raw.dca.executions:[];s.goals={...d.goals,...(raw.goals||{}),horizonTargets:{...d.goals.horizonTargets,...(raw.goals?.horizonTargets||{})}};s.snapshots=Array.isArray(raw.snapshots)?raw.snapshots:[];s.income=Array.isArray(raw.income)?raw.income:[];s.settings={...d.settings,...(raw.settings||{}),economicExposure:{...DEFAULT_EXPOSURE,...(raw.settings?.economicExposure||{})}};s.targetAllocation=Array.isArray(raw.targetAllocation)?raw.targetAllocation:d.targetAllocation;s.theme=raw.theme||d.theme;return s;}
+function migrate(raw){const d=DEF();if(!raw||typeof raw!=='object')return d;const s={...d,...raw};s.schemaVersion=6;s.transactions=Array.isArray(raw.transactions)?raw.transactions.map(normTx):d.transactions;s.accounts=Array.isArray(raw.accounts)?raw.accounts.map(normAccount):d.accounts;s.customAssets=Array.isArray(raw.customAssets)?raw.customAssets.map(a=>({...a,id:a.id||cid(),ticker:String(a.ticker||a.sym||'').toUpperCase().replace(/[^A-Z0-9._-]/g,''),cur:a.cur||'EUR',type:a.type||'other',priceSource:a.priceSource||'manual'})):d.customAssets;s.prices=raw.prices&&typeof raw.prices==='object'?raw.prices:{};s.fx={...d.fx,...(raw.fx||{})};s.dca={...d.dca,...(raw.dca||{})};if(Array.isArray(raw.dca?.lines)){s.dca.lines=raw.dca.lines.map(l=>({id:l.id||cid(),name:l.name||l.asset||'',sym:String(l.sym||'').toUpperCase(),type:l.type||'etf',envelope:l.envelope||inferEnvelope(l),platform:l.platform||'PEA',cur:l.cur||'EUR',plannedAmt:num(l.plannedAmt||l.amt),frequency:l.frequency||'Mensuelle',day:num(l.day)||5,active:l.active!==false}));}s.dca.executions=Array.isArray(raw.dca?.executions)?raw.dca.executions:[];s.goals={...d.goals,...(raw.goals||{}),horizonTargets:{...d.goals.horizonTargets,...(raw.goals?.horizonTargets||{})}};s.snapshots=Array.isArray(raw.snapshots)?raw.snapshots:[];s.income=Array.isArray(raw.income)?raw.income:[];s.settings={...d.settings,...(raw.settings||{}),economicExposure:{...DEFAULT_EXPOSURE,...(raw.settings?.economicExposure||{})}};s.targetAllocation=Array.isArray(raw.targetAllocation)?raw.targetAllocation:d.targetAllocation;s.theme=raw.theme||d.theme;return s;}
 function loadState(){try{const r=localStorage.getItem(STORE);if(r)return migrate(JSON.parse(r));}catch(e){}for(const k of OLD_STORES){try{const r=localStorage.getItem(k);if(r){const s=migrate(JSON.parse(r));localStorage.setItem(STORE,JSON.stringify(s));return s;}}catch(e){}}return DEF();}
 function isGoldLine(l){const sym=String(l.sym||'').toUpperCase();if(sym==='XAU')return true;if(String(l.type||'')==='gold')return true;if(String(l.envelope||'')==='Or physique')return true;const name=String(l.name||'').toLowerCase();// Évite de matcher "World" ou "WPEA" : on cherche "or" comme mot entier, pas comme fragment
 if(/\bor\b/.test(name)&&!name.includes('world')&&!name.includes('msci')&&!name.includes('wpea')&&!name.includes('esee'))return true;return false;}
@@ -938,6 +940,8 @@ function feeTotal(t){return num(t.fees)+num(t.buyFees)+num(t.sellFees)+num(t.fxF
 function assetCatalog(){const out={...KNOWN};for(const a of S.customAssets||[]){if(a.ticker)out[a.ticker.toUpperCase()]={name:a.name||a.ticker,type:a.type||'other',cur:a.cur||'EUR',isin:a.isin,source:a.priceSource||'manual',platform:a.platform||'',comment:a.comment||''};}return out;}
 // Retourne le statut d'un prix : 'live' <24h ET source live, 'recent' <7j (ou manuel frais), 'stale' >=7j, 'missing' absent
 const PRICE_LIVE_MS=864e5,PRICE_STALE_MS=7*864e5;
+// Écrit un prix pour un ticker ET ses alias (AO00↔WPEA) — point d'entrée unique
+function setPrice(sym,entry){const up=String(sym||'').toUpperCase();if(!up)return;[up,...(PRICE_ALIASES[up]||[])].forEach(k=>S.prices[k.toLowerCase()]={...entry});}
 function priceEntry(sym){
   // Cherche le prix sous le ticker demandé puis sous ses alias (AO00↔WPEA) : on garde le plus frais
   const keys=[String(sym||'').toUpperCase(),...(PRICE_ALIASES[String(sym||'').toUpperCase()]||[])];
@@ -1035,14 +1039,20 @@ function isStrategyItem(x){if(isFrozenItem(x))return false;if(x.kind==='position
 function strategyItems(){return lineItems().filter(isStrategyItem);}
 function passiveItems(){return lineItems().filter(isFrozenItem);}
 function sumItems(items){return items.reduce((s,x)=>s+x.value,0);}
-function monthlyPlanSummary(){const mk=monthNow(),lines=(S.dca.lines||[]).filter(l=>l.active!==false&&DCA_ENVELOPES.includes(l.envelope)),execs=S.dca.executions||[],done=id=>execs.find(e=>e.month===mk&&e.lineId===id),planned=lines.reduce((s,l)=>s+num(l.plannedAmt),0),actual=lines.reduce((s,l)=>s+num(done(l.id)?.actual),0);return{mk,lines,planned,actual,remaining:Math.max(0,planned-actual),done};}
+// ── Fréquence DCA réellement appliquée ──────────────────────────────────────
+// Mensuelle : montant tel quel chaque mois · Hebdomadaire : ×4 par mois
+// Trimestrielle : due uniquement en janvier, avril, juillet, octobre
+const QUARTER_MONTHS=[1,4,7,10];
+function dcaMonthlyDue(l,mk=monthNow()){const amt=num(l.plannedAmt),f=l.frequency||'Mensuelle';if(f==='Hebdomadaire')return amt*4;if(f==='Trimestrielle')return QUARTER_MONTHS.includes(parseInt(mk.slice(5,7),10))?amt:0;return amt;}
+function nextQuarterDueLabel(mk=monthNow()){const m=parseInt(mk.slice(5,7),10),y=parseInt(mk.slice(0,4),10);const nm=QUARTER_MONTHS.find(q=>q>m);return nm?`${y}-${String(nm).padStart(2,'0')}`:`${y+1}-01`;}
+function monthlyPlanSummary(){const mk=monthNow(),all=(S.dca.lines||[]).filter(l=>l.active!==false&&DCA_ENVELOPES.includes(l.envelope)),lines=all.filter(l=>dcaMonthlyDue(l,mk)>0),offCycle=all.filter(l=>dcaMonthlyDue(l,mk)<=0),execs=S.dca.executions||[],done=id=>execs.find(e=>e.month===mk&&e.lineId===id),planned=lines.reduce((s,l)=>s+dcaMonthlyDue(l,mk),0),actual=all.reduce((s,l)=>s+num(done(l.id)?.actual),0);return{mk,lines,offCycle,planned,actual,remaining:Math.max(0,planned-actual),done};}
 function targetValueFor(t,items=strategyItems()){const mv=String(t.matchValue||'').trim(),sym=mv.toUpperCase();if(t.matchType==='symbol')return items.filter(i=>String(i.sym||'').toUpperCase()===sym).reduce((s,i)=>s+i.value,0);if(t.matchType==='type')return items.filter(i=>i.type===mv).reduce((s,i)=>s+i.value,0);if(t.matchType==='envelope')return items.filter(i=>i.envelope===mv).reduce((s,i)=>s+i.value,0);return 0;}
 function targetRuleLabel(t){if(t.matchType==='symbol')return`Ticker ${String(t.matchValue||'').toUpperCase()}`;if(t.matchType==='type')return`Type ${TYPES[t.matchValue]||t.matchValue}`;if(t.matchType==='envelope')return`Enveloppe ${t.matchValue}`;return'Libre';}
 function allocationRows(items=strategyItems()){const baseValue=sumItems(items);return(S.targetAllocation||[]).map(t=>{const value=targetValueFor(t,items),currentPct=baseValue?value/baseValue*100:0,targetPct=num(t.targetPct),targetValue=baseValue*targetPct/100,diff=targetValue-value;return{...t,value,currentPct,targetPct,targetValue,diff,absDiff:Math.abs(diff),under:Math.max(0,diff),rule:targetRuleLabel(t)};});}
 function nextDecision(plan=monthlyPlanSummary()){const rows=allocationRows().filter(r=>r.targetPct>0),under=rows.filter(r=>r.diff>50).sort((a,b)=>b.diff-a.diff)[0],over=rows.filter(r=>r.diff<-50).sort((a,b)=>a.diff-b.diff)[0];if(!rows.length)return{title:'Definir tes cibles',detail:'Ajoute WPEA, ESEE, CTO et crypto dans Allocation cible pour obtenir une recommandation vraiment utile.',tag:'a regler',row:null};if(under&&plan.remaining>0){const amt=Math.min(plan.remaining,under.diff);return{title:`Mettre ${fE0(amt)} sur ${under.label}`,detail:`Cible ${under.targetPct.toFixed(0)} %, actuel ${under.currentPct.toFixed(1)} %. Ecart mecanique: ${fE0(under.diff)}.`,tag:'prochain euro',row:under};}if(under)return{title:`Renforcer ${under.label}`,detail:`C'est la poche la plus sous-ponderee: ${under.currentPct.toFixed(1)} % actuel pour ${under.targetPct.toFixed(0)} % cible.`,tag:'priorite',row:under};if(over)return{title:'Ne pas renforcer la poche haute',detail:`${over.label} est au-dessus de la cible de ${Math.abs(over.targetPct-over.currentPct).toFixed(1)} points. Les prochains apports peuvent aller ailleurs.`,tag:'discipline',row:over};if(plan.remaining>0)return{title:`Investir ${fE0(plan.remaining)} selon le plan`,detail:'Les cibles sont proches. Execute WPEA / ESEE / crypto selon tes lignes mensuelles.',tag:'ce mois',row:null};return{title:'Plan du mois boucle',detail:'Le plan mensuel est marque comme execute. La prochaine vraie action est le suivi ou le prochain apport.',tag:'ok',row:null};}
 function dashboardHealth(risks,plan){let score=100;const notes=[],reserveTarget=num(S.settings.securityReserveTarget),cryptoPct=risks.strategyPct(risks.strategyTypes.crypto);if(reserveTarget&&risks.reserve<reserveTarget){score-=18;notes.push('reserve sous cible');}if(cryptoPct>num(S.settings.cryptoThreshold)){score-=16;notes.push('crypto au-dessus du seuil');}if(plan.planned&&plan.remaining/plan.planned>.25){score-=10;notes.push('plan mensuel incomplet');}if((S.snapshots||[]).length<2){score-=7;notes.push('historique trop court');}if(risks.top3Pct>65){score-=8;notes.push('top 3 concentre');}score=clamp(Math.round(score),0,100);return{score,label:score>=85?'Tres propre':score>=70?'Correct':score>=55?'A surveiller':'A reprendre',notes};}
-function dashboardActions(risks,plan,decision){const out=[];if(!S.settings.strategyTailored)out.push({icon:'P',title:'Appliquer ton profil',detail:'Force le mode PEA / CTO / crypto et gele assurance-vie, PEL, 3e pilier.',tag:'profil'});if(plan.remaining>0)out.push({icon:'1',title:'Finir le plan mensuel',detail:`Il reste ${fE(plan.remaining)} a investir sur PEA / CTO / crypto pour ${plan.mk}.`,tag:'mois'});else out.push({icon:'1',title:'Plan mensuel execute',detail:'Les apports du mois sont coches. Prochaine etape: verifier prix et snapshot.',tag:'ok'});if(decision?.row)out.push({icon:'2',title:decision.title,detail:decision.detail,tag:decision.tag});const reserveTarget=num(S.settings.securityReserveTarget);if(reserveTarget&&risks.reserve<reserveTarget)out.push({icon:'3',title:'Completer la reserve',detail:`Reserve: ${fE(risks.reserve)} / ${fE(reserveTarget)}. A separer des investissements.`,tag:'securite'});const cryptoPct=risks.strategyPct(risks.strategyTypes.crypto);if(cryptoPct>num(S.settings.cryptoThreshold))out.push({icon:'!',title:'Limiter la crypto',detail:`Crypto a ${cryptoPct.toFixed(1)} % du portefeuille pilote, seuil ${S.settings.cryptoThreshold} %.`,tag:'risque'});if((S.snapshots||[]).length<2)out.push({icon:'H',title:'Creer un historique',detail:'Cree un snapshot maintenant, puis un autre plus tard pour avoir une courbe utile.',tag:'data'});return out.slice(0,5);}
-function actionListHtml(items){return`<div class="action-list">${items.map(a=>`<div class="action-item"><div class="action-icon">${esc(a.icon)}</div><div><div class="action-title">${esc(a.title)}</div><div class="action-detail">${esc(a.detail)}</div></div><div class="action-tag">${esc(a.tag)}</div></div>`).join('')}</div>`;}
+function dashboardActions(risks,plan,decision){const out=[];if(!S.settings.strategyTailored)out.push({icon:'P',title:'Appliquer ton profil',detail:'Force le mode PEA / CTO / crypto et gele assurance-vie, PEL, 3e pilier.',tag:'profil',run:'applyPeaCtoCryptoProfile'});if(plan.remaining>0)out.push({icon:'1',title:'Finir le plan mensuel',detail:`Il reste ${fE(plan.remaining)} a investir sur PEA / CTO / crypto pour ${plan.mk}.`,tag:'mois',go:'dca'});else out.push({icon:'1',title:'Plan mensuel execute',detail:'Les apports du mois sont coches. Prochaine etape: verifier prix et snapshot.',tag:'ok',go:'dca'});if(decision?.row)out.push({icon:'2',title:decision.title,detail:decision.detail,tag:decision.tag,go:'allocation'});const reserveTarget=num(S.settings.securityReserveTarget);if(reserveTarget&&risks.reserve<reserveTarget)out.push({icon:'3',title:'Completer la reserve',detail:`Reserve: ${fE(risks.reserve)} / ${fE(reserveTarget)}. A separer des investissements.`,tag:'securite',go:'portfolio'});const cryptoPct=risks.strategyPct(risks.strategyTypes.crypto);if(cryptoPct>num(S.settings.cryptoThreshold))out.push({icon:'!',title:'Limiter la crypto',detail:`Crypto a ${cryptoPct.toFixed(1)} % du portefeuille pilote, seuil ${S.settings.cryptoThreshold} %.`,tag:'risque',go:'allocation'});if((S.snapshots||[]).length<2)out.push({icon:'H',title:'Creer un historique',detail:'Cree un snapshot maintenant, puis un autre plus tard pour avoir une courbe utile.',tag:'data',go:'settings'});return out.slice(0,5);}
+function actionListHtml(items){return`<div class="action-list">${items.map(a=>{const click=a.run?` onclick="${a.run}()" style="cursor:pointer" title="Cliquer pour lancer"`:a.go?` onclick="goTab('${a.go}')" style="cursor:pointer" title="Cliquer pour ouvrir"`:'';return`<div class="action-item"${click}><div class="action-icon">${esc(a.icon)}</div><div><div class="action-title">${esc(a.title)}</div><div class="action-detail">${esc(a.detail)}</div></div><div class="action-tag">${esc(a.tag)}</div></div>`;}).join('')}</div>`;}
 function allocationBarsHtml(rows){if(!rows.length)return'<div class="empty">Aucune cible definie.</div>';return`<div class="alloc-bars">${rows.map(r=>{const width=clamp(r.currentPct,0,100),target=clamp(r.targetPct,0,100);return`<div class="bar-row"><div class="bar-label" title="${esc(r.label)}">${esc(r.label)}</div><div class="bar-track" title="Actuel ${r.currentPct.toFixed(1)} %, cible ${r.targetPct.toFixed(1)} %"><span style="width:${width}%"></span><em style="width:${target}%"></em></div><div class="bar-meta">${r.currentPct.toFixed(1)} / ${r.targetPct.toFixed(0)}%</div></div>`}).join('')}</div>`;}
 function reservePct(risks){const target=num(S.settings.securityReserveTarget);return target?clamp(risks.reserve/target*100,0,100):0;}
 function applyPeaCtoCryptoProfile(){if(!confirm('Appliquer le profil PEA / CTO / crypto ? Cela ajuste le plan mensuel, les cibles et les statuts geles, sans supprimer tes positions ni tes comptes.'))return;S.dca=S.dca||{lines:[],executions:[],log:[],done:{}};S.dca.lines=(S.dca.lines||[]).filter(l=>!isGoldLine(l));const defaults=[{name:'MSCI World',sym:'WPEA',type:'etf',envelope:'PEA',platform:'PEA',cur:'EUR',plannedAmt:700,day:5},{name:'S&P 500',sym:'ESEE',type:'etf',envelope:'PEA',platform:'PEA',cur:'EUR',plannedAmt:300,day:5},{name:'Bitcoin',sym:'BTC',type:'crypto',envelope:'Crypto',platform:'Coinbase',cur:'EUR',plannedAmt:100,day:10}];defaults.forEach(d=>{const line=S.dca.lines.find(l=>String(l.sym||'').toUpperCase()===d.sym);if(line){Object.assign(line,{name:line.name||d.name,type:d.type,envelope:d.envelope,platform:line.platform||d.platform,cur:d.cur,frequency:'Mensuelle',active:true});if(num(line.plannedAmt)<=0)line.plannedAmt=d.plannedAmt;if(!line.day)line.day=d.day;}else S.dca.lines.push({id:cid(),...d,frequency:'Mensuelle',active:true});});S.targetAllocation=[{id:cid(),label:'ETF Monde PEA',matchType:'symbol',matchValue:'WPEA',targetPct:65},{id:cid(),label:'S&P 500 PEA',matchType:'symbol',matchValue:'ESEE',targetPct:25},{id:cid(),label:'Actions CTO',matchType:'envelope',matchValue:'CTO',targetPct:5},{id:cid(),label:'Crypto',matchType:'type',matchValue:'crypto',targetPct:5}];S.accounts=(S.accounts||[]).map(a=>{const x=normAccount(a);if(['assurance','pillar','pel'].includes(x.type)||['Assurance-vie','3e pilier','PEL'].includes(x.envelope))x.status='frozen';if(x.type==='reserve')x.status='watch';return x;});S.settings={...S.settings,strategyTailored:true,allocationBase:'strategy',economicExposure:{...DEFAULT_EXPOSURE,...(S.settings?.economicExposure||{})}};save();toast('Profil PEA / CTO / crypto applique');renderCurrent();}
@@ -1239,7 +1249,7 @@ function renderDashboardCockpit(){
             <div><span>Reste</span><b>${fE(plan.remaining)}</b></div>
           </div>
         </div>
-        ${dcaMini.length?`<div class="dca-mini">${dcaMini.map(l=>{const ex=plan.done(l.id);return`<div class="dm-row"><span class="dm-dot${ex?' ok':''}">${ex?'✓':''}</span><span class="dm-name">${esc(l.name||l.sym)}</span><span class="dm-amt">${fE0(l.plannedAmt)}</span><span class="dm-st ${ex?'pos':'muted'}">${ex?'fait':'à faire'}</span></div>`}).join('')}${plan.lines.length>4?`<div class="hint" style="margin-top:8px">+ ${plan.lines.length-4} autre${plan.lines.length-4>1?'s':''} ligne${plan.lines.length-4>1?'s':''}</div>`:''}</div>`:'<div class="empty">Aucune ligne mensuelle active — ajoute ta première ligne DCA.</div>'}
+        ${dcaMini.length?`<div class="dca-mini">${dcaMini.map(l=>{const ex=plan.done(l.id);return`<div class="dm-row"><span class="dm-dot${ex?' ok':''}">${ex?'✓':''}</span><span class="dm-name">${esc(l.name||l.sym)}</span><span class="dm-amt">${fE0(dcaMonthlyDue(l))}</span><span class="dm-st ${ex?'pos':'muted'}">${ex?'fait':'à faire'}</span></div>`}).join('')}${plan.lines.length>4?`<div class="hint" style="margin-top:8px">+ ${plan.lines.length-4} autre${plan.lines.length-4>1?'s':''} ligne${plan.lines.length-4>1?'s':''}</div>`:''}</div>`:'<div class="empty">Aucune ligne mensuelle active — ajoute ta première ligne DCA.</div>'}
         <div class="fa" style="margin-top:14px"><button class="btn btn-p" onclick="goTab('dca')">Ouvrir le plan</button></div>
       </section>
 
@@ -1376,10 +1386,8 @@ function drawHistoryChart(){
   // Helpers
   const fmtDate=d=>new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
   const fmtTime=d=>new Date(d).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  const snapLabels=snaps.map(s=>{
-    const days=new Set(snaps.map(x=>(x.date||'').slice(0,10)));
-    return days.size<=1?fmtTime(s.date):fmtDate(s.date);
-  });
+  const dayCount=new Set(snaps.map(x=>(x.date||'').slice(0,10))).size;
+  const snapLabels=snaps.map(s=>dayCount<=1?fmtTime(s.date):fmtDate(s.date));
   const pr=snaps.length<20?3:0;
 
   const baseOpts=(legendDisplay,extraScaleY)=>({
@@ -1573,13 +1581,13 @@ function renderPortfolio(){
 }
 function sortPf(col){if(pfSort.col===col){pfSort.dir*=-1;}else{pfSort.col=col;pfSort.dir=col==='name'?1:-1;}renderPortfolio();}
 
-function editPrice(sym,current){const v=prompt('Prix manuel pour '+sym,current);if(v===null)return;const n=num(v);if(n>0){const up=String(sym).toUpperCase();const entry={price:n,cur:(assetCatalog()[up]?.cur)||'EUR',src:'manuel',at:new Date().toISOString()};[up,...(PRICE_ALIASES[up]||[])].forEach(k=>S.prices[k.toLowerCase()]={...entry});save();toast('Prix manuel enregistré');renderCurrent();renderSpotBar();}}
+function editPrice(sym,current){const v=prompt('Prix manuel pour '+sym,current);if(v===null)return;const n=num(v);if(n>0){const up=String(sym).toUpperCase();setPrice(up,{price:n,cur:(assetCatalog()[up]?.cur)||'EUR',src:'manuel',at:new Date().toISOString()});save();toast('Prix manuel enregistré');renderCurrent();renderSpotBar();}}
 function showAccountForm(editId){const a=editId?(S.accounts||[]).find(x=>x.id===editId):null;byId('account-form').innerHTML=`<div class="card"><div class="card-title">${a?'Modifier':'Nouveau'} compte / enveloppe</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="an" value="${esc(a?.name||'')}"></div><div class="fl"><label>Type</label><select id="at">${Object.entries(ACCOUNT_TYPES).map(([k,l])=>`<option value="${k}" ${a?.type===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Enveloppe</label><select id="ae">${ENVELOPES.map(e=>`<option ${a?.envelope===e?'selected':''}>${e}</option>`).join('')}</select></div><div class="fl"><label>Statut</label><select id="as">${Object.entries(ACCOUNT_STATUS).map(([k,l])=>`<option value="${k}" ${defaultAccountStatus(a||{})===k?'selected':''}>${l}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="ac">${['EUR','USD','CHF'].map(c=>`<option ${a?.cur===c?'selected':''}>${c}</option>`).join('')}</select></div><div class="fl"><label>Montant</label><input id="aa" type="number" value="${a?.amount??''}"></div><div class="fl"><label>Institution</label><input id="ai" value="${esc(a?.institution||'')}"></div><div class="fl"><label>Date de mise à jour</label><input id="au" type="date" value="${a?.updatedAt||today()}"></div><div class="fl wide"><label>Commentaire</label><textarea id="aco">${esc(a?.comment||'')}</textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveAccount('${editId||''}')">Enregistrer</button><button class="btn btn-g" onclick="byId('account-form').innerHTML=''">Annuler</button></div></div>`;}
 function editAccount(id){showAccountForm(id)}
 function saveAccount(id){const a={id:id||cid(),name:byId('an').value.trim(),type:byId('at').value,envelope:byId('ae').value,status:byId('as').value,cur:byId('ac').value,amount:num(byId('aa').value),institution:byId('ai').value.trim(),updatedAt:byId('au').value||today(),comment:byId('aco').value.trim()};if(!a.name){toast('Nom requis');return;}S.accounts=id?S.accounts.map(x=>x.id===id?a:x):[...S.accounts,a];save();toast('Compte enregistré');renderPortfolio();}
 function delAccount(id){if(!confirm('Supprimer ce compte ?'))return;S.accounts=S.accounts.filter(a=>a.id!==id);save();renderPortfolio();}
 function showAssetForm(){byId('asset-form').innerHTML=`<div class="card"><div class="card-title">Actif personnalisé</div><div class="fgrid"><div class="fl"><label>Nom</label><input id="xn"></div><div class="fl"><label>Ticker</label><input id="xt" style="text-transform:uppercase"></div><div class="fl"><label>ISIN optionnel</label><input id="xi"></div><div class="fl"><label>Type</label><select id="xtype">${Object.entries(TYPES).map(([k,l])=>`<option value="${k}">${l}</option>`).join('')}</select></div><div class="fl"><label>Devise</label><select id="xc"><option>EUR</option><option>USD</option><option>CHF</option></select></div><div class="fl"><label>Source de prix</label><select id="xs"><option value="manual">manuel</option><option value="live">live</option></select></div><div class="fl"><label>Plateforme</label><select id="xp">${PLATFORMS.map(pf=>`<option>${pf}</option>`).join('')}</select></div><div class="fl wide"><label>Commentaire</label><textarea id="xco"></textarea></div></div><div class="fa"><button class="btn btn-p" onclick="saveAsset()">Enregistrer</button><button class="btn btn-g" onclick="byId('asset-form').innerHTML=''">Annuler</button></div></div>`}
-function saveAsset(){const a={id:cid(),name:byId('xn').value.trim(),ticker:byId('xt').value.trim().toUpperCase(),isin:byId('xi').value.trim(),type:byId('xtype').value,cur:byId('xc').value,priceSource:byId('xs').value,platform:byId('xp').value.trim(),comment:byId('xco').value.trim()};if(!a.name||!a.ticker){toast('Nom et ticker requis');return;}S.customAssets=[...(S.customAssets||[]).filter(x=>x.ticker!==a.ticker),a];save();toast('Actif personnalisé ajouté');renderPortfolio();}
+function saveAsset(){const a={id:cid(),name:byId('xn').value.trim(),ticker:byId('xt').value.trim().toUpperCase().replace(/[^A-Z0-9._-]/g,''),isin:byId('xi').value.trim(),type:byId('xtype').value,cur:byId('xc').value,priceSource:byId('xs').value,platform:byId('xp').value.trim(),comment:byId('xco').value.trim()};if(!a.name||!a.ticker){toast('Nom et ticker requis');return;}S.customAssets=[...(S.customAssets||[]).filter(x=>x.ticker!==a.ticker),a];save();toast('Actif personnalisé ajouté');renderPortfolio();}
 function delAsset(id){if(!confirm('Supprimer cet actif personnalisé ?'))return;S.customAssets=S.customAssets.filter(a=>a.id!==id);save();renderPortfolio();}
 function renderEnvelopes(){
   const stats=envelopeStats().filter(e=>e.value>0||e.count>0),T=totals();
@@ -1726,7 +1734,7 @@ function showTxForm(prefill={}){
 function acSearch(val){const list=byId('ac-list');if(!list||!val){list.style.display='none';return;}const q=val.toUpperCase(),cat=assetCatalog();const matches=Object.entries(cat).filter(([k,v])=>k.includes(q)||String(v.name).toUpperCase().includes(q)).slice(0,9);if(!matches.length){list.innerHTML=`<div class="ac-item"><div><div class="ac-name">Actif personnalisé possible</div><div class="ac-type">Ajoute-le dans Portefeuille si tu veux le réutiliser</div></div></div>`;list.style.display='block';return;}list.innerHTML=matches.map(([k,v])=>`<div class="ac-item" onmousedown="acSelect('${k}')"><div><div class="ac-name">${k} — ${esc(v.name)}</div><div class="ac-type">${TYPES[v.type]||v.type} · ${v.cur}</div></div><span class="badge b-${v.type}">${TYPES[v.type]||v.type}</span></div>`).join('');list.style.display='block';}
 function acSelect(sym){const i=assetCatalog()[sym];byId('fs').value=sym;byId('fn').value=i.name;byId('ft').value=i.type;byId('fc').value=i.cur||'EUR';const env=inferEnvelope({type:i.type,platform:byId('fp')?.value||''});if(byId('fe'))byId('fe').value=env;byId('ac-list').style.display='none';}
 document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap')){['ac-list','dac-list'].forEach(id=>{const l=byId(id);if(l)l.style.display='none';});}});
-function saveTx(){const sym=byId('fs').value.trim().toUpperCase(),name=byId('fn').value.trim(),qty=num(byId('fq').value),price=num(byId('fpr').value);if(!sym||!name||qty<=0||price<=0){toast('Ticker, nom, quantité et prix requis');return;}const editId=byId('f-edit-id')?.value||null;let tx={id:editId||cid(),date:byId('fd').value||today(),name,sym,type:byId('ft').value,envelope:byId('fe').value,platform:byId('fp').value.trim(),cur:byId('fc').value,op:byId('fo').value,qty,price,fees:num(byId('ff').value),fxFees:num(byId('ffx').value),spreadFees:num(byId('fsp').value),brokerFees:num(byId('fbr').value),goldWeight:num(byId('fgw').value),goldKind:byId('fgk').value,spotPrice:num(byId('fgs').value),comment:byId('fco').value.trim()};if(tx.op==='sell'){const preview=salePreview(tx);if(preview.error){toast(preview.error);return;}tx.realizedPl=preview.realized;tx.proceeds=preview.proceeds;tx.avgCost=preview.avgCost;}if(editId){S.transactions=S.transactions.map(t=>t.id===editId?tx:t);toast('Transaction modifiée');}else{S.transactions.push(tx);toast(tx.op==='sell'?'Vente enregistrée':'Transaction ajoutée');}if(!S.prices[sym.toLowerCase()])S.prices[sym.toLowerCase()]={price,cur:tx.cur,src:'manuel',at:new Date().toISOString()};save();renderTransactions();renderSpotBar();}
+function saveTx(){const sym=byId('fs').value.trim().toUpperCase(),name=byId('fn').value.trim(),qty=num(byId('fq').value),price=num(byId('fpr').value);if(!sym||!name||qty<=0||price<=0){toast('Ticker, nom, quantité et prix requis');return;}const editId=byId('f-edit-id')?.value||null;let tx={id:editId||cid(),date:byId('fd').value||today(),name,sym,type:byId('ft').value,envelope:byId('fe').value,platform:byId('fp').value.trim(),cur:byId('fc').value,op:byId('fo').value,qty,price,fees:num(byId('ff').value),fxFees:num(byId('ffx').value),spreadFees:num(byId('fsp').value),brokerFees:num(byId('fbr').value),goldWeight:num(byId('fgw').value),goldKind:byId('fgk').value,spotPrice:num(byId('fgs').value),comment:byId('fco').value.trim()};if(tx.op==='sell'){const preview=salePreview(tx);if(preview.error){toast(preview.error);return;}tx.realizedPl=preview.realized;tx.proceeds=preview.proceeds;tx.avgCost=preview.avgCost;}if(editId){S.transactions=S.transactions.map(t=>t.id===editId?tx:t);toast('Transaction modifiée');}else{S.transactions.push(tx);toast(tx.op==='sell'?'Vente enregistrée':'Transaction ajoutée');}if(!priceEntry(sym))setPrice(sym,{price,cur:tx.cur,src:'manuel',at:new Date().toISOString()});save();renderTransactions();renderSpotBar();}
 function salePreview(tx){
   const editId=tx._editId||tx.id||null;
   let qty=0,cost=0;
@@ -1766,12 +1774,13 @@ function saveIncome(){const gross=num(byId('igross').value),tax=num(byId('itax')
 function delIncome(id){if(!confirm('Supprimer ce revenu ?'))return;S.income=S.income.filter(i=>i.id!==id);save();renderIncome();}
 function isFileMode(){try{return String(window?.location?.protocol||location?.protocol||'')==='file:'}catch(e){return true}}
 function liveNetworkAllowed(){return !isFileMode()||S.settings?.allowFileLive===true}
-async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fxOk=await fetchFx();if(fxOk)n++;const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={bitcoin:'BTC',ethereum:'ETH',solana:'SOL','pax-gold':'XAU'};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});try{const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`).then(r=>r.json());Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';const price=fromE(j[id].eur,cur);S.prices[sym.toLowerCase()]={price,cur,src:'live',at:now};if(sym==='XAU'){S.goldSpot=j[id].eur;S.goldUpdated=now;}n++;}});}catch(e){}let goldNeeded=pos.some(p=>p.type==='gold')||(S.accounts||[]).some(a=>a.type==='gold')||true;if(goldNeeded){let eur=null;try{const gj=await(await fetch('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=eur')).json();if(gj?.['pax-gold']?.eur)eur=gj['pax-gold'].eur;}catch(e){}if(eur){S.goldSpot=eur;S.goldUpdated=now;S.prices.xau={price:eur,cur:'EUR',src:'live',at:now};n++}}// ETF + actions via tokens RWA CoinGecko (USD→EUR)
+async function doRefresh(){const btn=byId('refresh-btn');btn.disabled=true;btn.innerHTML='↻ En cours…';const now=new Date().toISOString();if(!liveNetworkAllowed()){createSnapshot(false);S.lastRefresh=now;save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh local : ${ago(now)} · live coupe en fichier local`;renderSpotBar();renderCurrent();toast('Mode fichier local: aucune requete web lancee, snapshot local cree');return;}let n=0;const fxOk=await fetchFx();if(fxOk)n++;const pos=positions(),cat=assetCatalog();const cryptos=pos.filter(p=>p.type==='crypto');const ids={bitcoin:'BTC',ethereum:'ETH',solana:'SOL','pax-gold':'XAU'};cryptos.forEach(p=>{const id=cat[p.sym]?.cg;if(id)ids[id]=p.sym});try{const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${Object.keys(ids).join(',')}&vs_currencies=eur`,{signal:AbortSignal.timeout(8000)}).then(r=>r.json());Object.entries(ids).forEach(([id,sym])=>{if(j?.[id]?.eur){const cur=cat[sym]?.cur||'EUR';const price=fromE(j[id].eur,cur);setPrice(sym,{price,cur,src:'live',at:now});if(sym==='XAU'){S.goldSpot=j[id].eur;S.goldUpdated=now;}n++;}});}catch(e){}// pax-gold est déjà dans le 1er appel (ids) : plus de 2e requête redondante
+// ETF + actions via tokens RWA CoinGecko (USD→EUR)
   const rwaSyms=pos.filter(p=>['etf','stock'].includes(p.type)&&RWA[p.sym]).map(p=>p.sym);
   if(rwaSyms.length){const rwaOut=await fetchRwaPrices(rwaSyms);n+=Object.keys(rwaOut).length;}S.lastRefresh=now;createSnapshot(false);save();btn.disabled=false;btn.innerHTML='↻ Actualiser';byId('refresh-meta').textContent=`Dernier refresh : ${ago(now)} · auto 4h`;renderSpotBar();renderCurrent();toast(n?`${n} prix mis à jour + snapshot créé`:'Serveurs inaccessibles: prix manuels conservés');}
 setInterval(()=>{if(navigator.onLine&&!uiBusy())doRefresh()},4*60*60*1000);
 // Taux de change toutes les heures (EUR/USD/CHF critique pour Nathan)
-setInterval(()=>{if(navigator.onLine)fetchFx()},60*60*1000);
+setInterval(()=>{if(navigator.onLine&&liveNetworkAllowed())fetchFx()},60*60*1000);
 function qid(ticker){return 'mc-'+String(ticker).replace(/[^a-z0-9]/gi,'_')}
 function uniqueMarketItems(items){const seen=new Set();return items.filter(it=>{const k=it.ticker+'|'+(it.localSym||'');if(seen.has(k))return false;seen.add(k);return true;});}
 function myMarketItems(){
@@ -1846,9 +1855,11 @@ async function renderMarket(force=false){
     if(fb.price!=null)card.querySelector('.mc-price').textContent=fM(fb.price,fb.cur||'EUR');
   });
   if(cryptoItems.length){
+    if(!liveNetworkAllowed()){cryptoOffline();}
+    else{
     const ids=[...new Set(cryptoItems.map(it=>it.cgId))].join(',');
     try{
-      const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=eur&include_24hr_change=true`).then(r=>r.json());
+      const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=eur&include_24hr_change=true`,{signal:AbortSignal.timeout(8000)}).then(r=>r.json());
       const now=new Date().toISOString();
       let any=false;
       cryptoItems.forEach(it=>{
@@ -1857,7 +1868,7 @@ async function renderMarket(force=false){
         const chg=j?.[it.cgId]?.eur_24h_change;
         if(price){
           any=true;
-          S.prices[it.localSym.toLowerCase()]={price,cur:'EUR',src:'live',at:now};
+          setPrice(it.localSym,{price,cur:'EUR',src:'live',at:now});
           card.querySelector('.mc-price').textContent=fM(price,'EUR');
           const ld=card.querySelector('.mc-loading');
           if(chg!=null){ld.className='mc-chg '+(chg>=0?'pos':'neg');ld.textContent=`${chg>=0?'▲ +':'▼ '}${chg.toFixed(2)} % (24h)`;}
@@ -1870,11 +1881,12 @@ async function renderMarket(force=false){
       if(!any)cryptoOffline();
       save();renderSpotBar();
     }catch(e){cryptoOffline();}
+    }
   }
 
   // ETF + actions : prix auto via tokens RWA (CoinGecko, USD→EUR), fallback manuel
   const stockItems=sections.flatMap(s=>s.items).filter(it=>it.kind!=='crypto'&&RWA[it.sym]);
-  if(stockItems.length){
+  if(stockItems.length&&liveNetworkAllowed()){
     const syms=stockItems.map(it=>it.sym);
     const rwaOut=await fetchRwaPrices(syms);
     stockItems.forEach(it=>{
@@ -1923,15 +1935,24 @@ function renderDca(){
 
     <section class="card">
       <div class="card-title">Checklist du mois</div>
-      ${lines.length?lines.map(l=>{const ex=done(l.id);const ecart=ex?ex.actual-l.plannedAmt:0;return`<div class="dline${ex?' done':''}">
+      ${lines.length?lines.map(l=>{const ex=done(l.id);const due=dcaMonthlyDue(l);const ecart=ex?ex.actual-due:0;const freqTag=l.frequency&&l.frequency!=='Mensuelle'?esc(l.frequency)+' · ':'';return`<div class="dline${ex?' done':''}">
         <button class="chk ${ex?'on':''}" onclick="executeDca('${l.id}')" title="${ex?'Annuler / ré-exécuter':'Marquer exécuté'}">${ex?'✓':''}</button>
-        <div class="dl-id"><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · jour ${l.day||'—'} · ${esc(l.platform)}</div></div>
-        <div class="dl-cell"><span>Prévu</span><b>${fE(l.plannedAmt)}</b></div>
+        <div class="dl-id"><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · ${freqTag}jour ${l.day||'—'} · ${esc(l.platform)}</div></div>
+        <div class="dl-cell"><span>Prévu${l.frequency==='Hebdomadaire'?' (×4)':''}</span><b>${fE(due)}</b></div>
         <div class="dl-cell"><span>Réel</span><b>${ex?fE(ex.actual):'—'}</b></div>
         <div class="dl-cell"><span>Écart</span><b class="${ex?(ecart>=0?'pos':'neg'):'muted'}">${ex?fE(ecart):'—'}</b></div>
         <span class="dl-st ${ex?'ok':''}">${ex?'Exécuté':'À faire'}</span>
         <button class="icon-btn" onclick="delDcaLine('${l.id}')" title="Supprimer la ligne">×</button>
       </div>`}).join(''):'<div class="empty">Aucune ligne mensuelle active — ajoute WPEA, ESEE ou BTC pour démarrer ton plan.</div>'}
+      ${plan.offCycle?.length?plan.offCycle.map(l=>`<div class="dline" style="opacity:.55">
+        <span class="chk" style="visibility:hidden"></span>
+        <div class="dl-id"><b>${esc(l.name||l.sym)}</b><div class="asset-sub">${esc(l.sym)} · ${esc(l.envelope)} · ${esc(l.frequency)} · ${esc(l.platform)}</div></div>
+        <div class="dl-cell"><span>Montant</span><b>${fE(l.plannedAmt)}</b></div>
+        <div class="dl-cell"><span>Échéance</span><b>${nextQuarterDueLabel()}</b></div>
+        <div class="dl-cell"></div>
+        <span class="dl-st">Hors cadence ce mois</span>
+        <button class="icon-btn" onclick="delDcaLine('${l.id}')" title="Supprimer la ligne">×</button>
+      </div>`).join(''):''}
     </section>
 
     <section class="card flush"><div class="shead" style="padding:16px 18px 0"><div class="section-title" style="margin:0">Historique des exécutions</div></div><div class="tbl-wrap"><table>
@@ -1971,7 +1992,8 @@ function executeDca(id){
     S.dca.executions=S.dca.executions.filter(e=>e.id!==existing.id);
     save();renderDca();toast('Exécution DCA retirée');return;
   }
-  const actual=num(prompt('Montant brut réellement investi',l.plannedAmt));if(actual<=0)return;
+  const due=dcaMonthlyDue(l)||num(l.plannedAmt);
+  const actual=num(prompt('Montant brut réellement investi',due));if(actual<=0)return;
   let txId=null,fees=0,spreadFees=0,qty=0,price=0;
   if(confirm('Créer automatiquement une transaction d’achat ?')){
     price=priceFor(l.sym,0,l.cur);price=num(prompt('Prix unitaire exécuté',price||0));
@@ -1984,13 +2006,13 @@ function executeDca(id){
     const tx={id:cid(),date:today(),name:l.name,sym:l.sym,type:l.type,envelope:l.envelope,platform:l.platform,cur:l.cur,op:'buy',qty,price,fees,spreadFees,comment:'Créé depuis le plan mensuel'};
     S.transactions.push(tx);txId=tx.id;
   }
-  S.dca.executions=[...(S.dca.executions||[]),{id:cid(),lineId:id,month:mk,date:today(),name:l.name,planned:num(l.plannedAmt),actual,fees,spreadFees,qty,price,txId}];
+  S.dca.executions=[...(S.dca.executions||[]),{id:cid(),lineId:id,month:mk,date:today(),name:l.name,planned:due,actual,fees,spreadFees,qty,price,txId}];
   save();toast('Plan mensuel exécuté');renderDca();
 }
 function delDcaLine(id){if(!confirm('Supprimer cette ligne DCA ?'))return;S.dca.lines=S.dca.lines.filter(l=>l.id!==id);save();renderDca();}
 function renderAllocation(){
   const items=strategyItems(),baseValue=sumItems(items);
-  function valFor(t){if(t.matchType==='symbol')return items.filter(i=>i.sym===String(t.matchValue).toUpperCase()).reduce((s,i)=>s+i.value,0);if(t.matchType==='type')return items.filter(i=>i.type===t.matchValue).reduce((s,i)=>s+i.value,0);if(t.matchType==='envelope')return items.filter(i=>i.envelope===t.matchValue).reduce((s,i)=>s+i.value,0);return 0}
+  function valFor(t){return targetValueFor(t,items);}
   killCharts();
   const rows=allocationRows(items);
   const sorted=[...rows].sort((a,b)=>b.under-a.under||b.absDiff-a.absDiff);
@@ -2047,7 +2069,7 @@ function renderAllocation(){
     mk('alloc-target',targetData,otherTarget);}
   }
 }
-function editTarget(id,k,v){const t=S.targetAllocation.find(x=>x.id===id);if(t){t[k]=k==='targetPct'?num(v):v;if(k==='matchValue')t[k]=String(v).trim();save();}}
+function editTarget(id,k,v){const t=S.targetAllocation.find(x=>x.id===id);if(t){t[k]=k==='targetPct'?num(v):v;if(k==='matchValue')t[k]=String(v).trim();save();renderAllocation();}}
 function addTarget(){S.targetAllocation=[...(S.targetAllocation||[]),{id:cid(),label:'Nouvelle cible',matchType:'type',matchValue:'etf',targetPct:0}];save();renderAllocation();}
 function delTarget(id){S.targetAllocation=S.targetAllocation.filter(t=>t.id!==id);save();renderAllocation();}
 function renderGoals(){
@@ -2166,25 +2188,28 @@ function renderSettings(){
         <button class="btn btn-p" onclick="exportBackup()">Télécharger backup</button>
         <button class="btn btn-g" onclick="byId('backup-file').click()">Restaurer backup</button>
         <button class="btn btn-g" onclick="exportCSV()">Exporter CSV</button>
+        <button class="btn btn-g" onclick="byId('csv-file').click()">Importer CSV</button>
         <button class="btn btn-d" onclick="resetData()">Réinitialiser</button>
       </div>
+      <div class="note" style="margin-top:10px">Import CSV : colonnes minimales <b>date, sym, qty, price</b> (+ op, fees, cur, platform, envelope… — même format que l'export, séparateur , ou ;). Les doublons exacts sont ignorés automatiquement.</div>
     </div>
     <div class="card">
       <div class="card-title">Prix & sources</div>
       <div class="sources-list">
         <div class="src-row"><span class="badge b-live">AUTO</span><b>Crypto + Or</b><span class="muted">CoinGecko, en direct</span></div>
-        <div class="src-row"><span class="badge b-live">AUTO</span><b>Change EUR/USD/CHF</b><span class="muted">CoinGecko, toutes les heures</span></div>
+        <div class="src-row"><span class="badge b-live">AUTO</span><b>Change EUR/USD/CHF</b><span class="muted">frankfurter.app (BCE) · fallback CoinGecko, toutes les heures</span></div>
         <div class="src-row"><span class="badge b-live">AUTO≈</span><b>ETF & actions</b><span class="muted">tokens RWA CoinGecko (approximatif) · sinon manuel</span></div>
       </div>
       <div class="note">ETF et actions utilisent les versions tokenisées (RWA) sur CoinGecko : automatique mais <b>approximatif</b> (suit l'indice, pas le cours exact de ton ETF). Pour un prix exact, clique sur la valeur dans Marchés et saisis-le à la main.</div>
+      ${isFileMode()?`<div class="fa" style="margin-top:12px"><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" ${S.settings.allowFileLive?'checked':''} onchange="S.settings.allowFileLive=this.checked;save();renderSettings();toast(this.checked?'Live autorisé en fichier local':'Live coupé en fichier local')"> Autoriser les requêtes live en mode fichier local (file://)</label></div>`:''}
     </div>
     <div class="card">
       <div class="card-title">Taux de change</div>
       <div class="fgrid">
-        <div class="fl"><label>1 USD = ? €</label><input type="number" step="0.0001" value="${S.fx.USD}" onchange="S.fx.USD=num(this.value);S.fxUpdated=new Date().toISOString();save();renderSettings();renderSpotBar()"></div>
-        <div class="fl"><label>1 CHF = ? €</label><input type="number" step="0.0001" value="${S.fx.CHF}" onchange="S.fx.CHF=num(this.value);S.fxUpdated=new Date().toISOString();save();renderSettings();renderSpotBar()"></div>
+        <div class="fl"><label>1 USD = ? €</label><input type="number" step="0.0001" value="${S.fx.USD}" onchange="S.fx.USD=num(this.value);S.fxUpdated=new Date().toISOString();S.fxSource='manuel';save();renderSettings();renderSpotBar()"></div>
+        <div class="fl"><label>1 CHF = ? €</label><input type="number" step="0.0001" value="${S.fx.CHF}" onchange="S.fx.CHF=num(this.value);S.fxUpdated=new Date().toISOString();S.fxSource='manuel';save();renderSettings();renderSpotBar()"></div>
       </div>
-      <div class="note">1 USD = ${S.fx.USD?S.fx.USD.toFixed(4):'—'} € · 1 CHF = ${S.fx.CHF?S.fx.CHF.toFixed(4):'—'} € · Or: ${S.goldSpot?fE(S.goldSpot):'—'}/oz · Mis à jour: ${S.fxUpdated?ago(S.fxUpdated):'jamais (actualiser)'}</div>
+      <div class="note">1 USD = ${S.fx.USD?S.fx.USD.toFixed(4):'—'} € · 1 CHF = ${S.fx.CHF?S.fx.CHF.toFixed(4):'—'} € · Or: ${S.goldSpot?fE(S.goldSpot):'—'}/oz · Mis à jour: ${S.fxUpdated?ago(S.fxUpdated):'jamais (actualiser)'}${S.fxSource?` · Source: ${esc(S.fxSource)}`:''}</div>
     </div>
     <div class="card">
       <div class="card-title">Seuils & objectifs de risque</div>
@@ -2247,7 +2272,85 @@ function exportSnapshots(){const payload={meta:{app:'Tracker Patrimoine',exporte
 function exportBackup(){const payload={meta:{app:'Tracker Patrimoine',schemaVersion:6,exportedAt:new Date().toISOString()},data:S};download(`patrimoine_backup_${today()}.json`,JSON.stringify(payload,null,2),'application/json');toast('Backup téléchargé');}
 function validateBackup(raw){const data=raw?.data||raw;if(!data||typeof data!=='object')return null;if(!Array.isArray(data.transactions)&&!Array.isArray(data.accounts)&&!Array.isArray(data.snapshots))return null;return migrate(data);}
 function importBackupFile(file){if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const parsed=JSON.parse(reader.result),next=validateBackup(parsed);if(!next){toast('Backup invalide');return;}if(!confirm('Restaurer ce backup ? Les données actuelles seront remplacées.'))return;S=next;save();applyTheme();renderSpotBar();renderCurrent();toast('Backup restauré');}catch(e){toast('Fichier JSON invalide');}finally{byId('backup-file').value='';}};reader.readAsText(file);}
-function exportCSV(){const txCols=['date','name','sym','type','op','qty','price','fees','fxFees','spreadFees','cur','platform','envelope','realizedPl'];const txRows=[txCols.join(','),...S.transactions.map(t=>txCols.map(c=>csv(t[c]??'')).join(','))];const accCols=['name','type','envelope','cur','amount','institution','updatedAt','comment'];const accRows=['',accCols.join(','),...S.accounts.map(a=>accCols.map(c=>csv(a[c]??'')).join(','))];download(`patrimoine_${today()}.csv`,[...txRows,...accRows].join('\n'),'text/csv');toast('CSV téléchargé');}
+function exportCSV(){const txCols=['date','name','sym','type','op','qty','price','fees','buyFees','sellFees','fxFees','spreadFees','brokerFees','custodyFees','cur','platform','envelope','comment','realizedPl'];const txRows=[txCols.join(','),...S.transactions.map(t=>txCols.map(c=>csv(t[c]??'')).join(','))];const accCols=['name','type','envelope','cur','amount','institution','updatedAt','comment'];const accRows=['',accCols.join(','),...S.accounts.map(a=>accCols.map(c=>csv(a[c]??'')).join(','))];download(`patrimoine_${today()}.csv`,[...txRows,...accRows].join('\n'),'text/csv');toast('CSV téléchargé');}
+// ── Import CSV de transactions ───────────────────────────────────────────────
+// Séparateur auto (, ou ;), champs entre guillemets gérés, en-têtes FR/EN tolérés
+function parseCsv(text){
+  const s=String(text||'').replace(/\r\n?/g,'\n');
+  const nl=s.indexOf('\n');
+  const firstLine=nl<0?s:s.slice(0,nl);
+  const sep=(firstLine.match(/;/g)||[]).length>(firstLine.match(/,/g)||[]).length?';':',';
+  const rows=[];let row=[],field='',inQ=false;
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(inQ){
+      if(c==='"'){if(s[i+1]==='"'){field+='"';i++;}else inQ=false;}
+      else field+=c;
+    }
+    else if(c==='"')inQ=true;
+    else if(c===sep){row.push(field);field='';}
+    else if(c==='\n'){row.push(field);field='';if(row.some(x=>String(x).trim()!==''))rows.push(row);row=[];}
+    else field+=c;
+  }
+  row.push(field);if(row.some(x=>String(x).trim()!==''))rows.push(row);
+  return rows;
+}
+function normCsvDate(v){
+  const s=String(v||'').trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return`${m[1]}-${m[2]}-${m[3]}`;
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return`${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+  return null;
+}
+function importCsvFile(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const rows=parseCsv(reader.result);
+      const lc=h=>String(h||'').toLowerCase().trim();
+      const ALIAS={date:['date'],name:['name','nom','asset','actif'],sym:['sym','ticker','symbol','symbole'],type:['type'],op:['op','operation','opération','side','sens'],qty:['qty','quantite','quantité','quantity'],price:['price','prix','prix unitaire'],fees:['fees','frais'],buyFees:['buyfees'],sellFees:['sellfees'],fxFees:['fxfees','frais de change'],spreadFees:['spreadfees','spread'],brokerFees:['brokerfees','courtier'],custodyFees:['custodyfees','garde'],cur:['cur','devise','currency'],platform:['platform','plateforme'],envelope:['envelope','enveloppe'],comment:['comment','commentaire','note']};
+      const TYPE_ALIAS={etf:'etf',action:'stock',actions:'stock',stock:'stock',crypto:'crypto',or:'gold',gold:'gold',cash:'cash'};
+      let hIdx=-1,map=null;
+      for(let i=0;i<Math.min(rows.length,5);i++){
+        const h=rows[i].map(lc),m={};
+        Object.entries(ALIAS).forEach(([k,names])=>{const idx=h.findIndex(x=>names.includes(x));if(idx>=0)m[k]=idx;});
+        if(m.date!=null&&m.sym!=null&&m.qty!=null&&m.price!=null){hIdx=i;map=m;break;}
+      }
+      if(!map){toast('En-tête CSV non reconnu — il faut au moins date, sym, qty, price');return;}
+      const get=(r,k)=>map[k]!=null?(r[map[k]]??''):'';
+      const existing=new Set(S.transactions.map(t=>[t.date,String(t.sym||'').toUpperCase(),t.op,num(t.qty),num(t.price)].join('|')));
+      const toAdd=[];let dup=0,bad=0;
+      for(let i=hIdx+1;i<rows.length;i++){
+        const r=rows[i];
+        const date=normCsvDate(get(r,'date'));
+        if(!date){bad++;continue;} // 2e en-tête (section comptes de l'export) ou date invalide
+        const sym=String(get(r,'sym')||'').toUpperCase().trim();
+        const qty=num(get(r,'qty')),price=num(get(r,'price'));
+        if(!sym||qty<=0||price<=0){bad++;continue;}
+        const op=['sell','vente','vendre','s'].includes(lc(get(r,'op')))?'sell':'buy';
+        const key=[date,sym,op,qty,price].join('|');
+        if(existing.has(key)){dup++;continue;}
+        existing.add(key);
+        const rawType=TYPE_ALIAS[lc(get(r,'type'))];
+        toAdd.push(normTx({date,sym,op,qty,price,
+          name:String(get(r,'name')||'').trim(),
+          type:rawType||undefined,
+          cur:String(get(r,'cur')||'').toUpperCase().trim()||undefined,
+          platform:String(get(r,'platform')||'').trim(),
+          envelope:String(get(r,'envelope')||'').trim()||undefined,
+          fees:num(get(r,'fees')),buyFees:num(get(r,'buyFees')),sellFees:num(get(r,'sellFees')),
+          fxFees:num(get(r,'fxFees')),spreadFees:num(get(r,'spreadFees')),brokerFees:num(get(r,'brokerFees')),custodyFees:num(get(r,'custodyFees')),
+          comment:String(get(r,'comment')||'').trim()}));
+      }
+      if(!toAdd.length){toast(dup?`Rien à importer : ${dup} doublon${dup>1?'s':''} déjà présent${dup>1?'s':''}`:'Aucune transaction valide trouvée');return;}
+      if(!confirm(`Importer ${toAdd.length} transaction${toAdd.length>1?'s':''} ?${dup?` ${dup} doublon${dup>1?'s':''} ignoré${dup>1?'s':''}.`:''}${bad?` ${bad} ligne${bad>1?'s':''} non reconnue${bad>1?'s':''}.`:''}`))return;
+      S.transactions=[...S.transactions,...toAdd];
+      save();createSnapshot(false);toast(`${toAdd.length} transaction${toAdd.length>1?'s':''} importée${toAdd.length>1?'s':''}`);renderCurrent();renderSpotBar();
+    }catch(e){toast('CSV invalide');}
+    finally{byId('csv-file').value='';}
+  };
+  reader.readAsText(file);
+}
 function csv(v){return`"${String(v).replace(/"/g,'""')}"`}
 function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function resetData(){if(!confirm('Effacer toutes les données et revenir aux données par défaut ?'))return;S=DEF();save();applyTheme();renderSpotBar();renderCurrent();toast('Réinitialisé');}
@@ -2259,6 +2362,7 @@ applyTheme();updateOnline();byId('refresh-meta').textContent=`Dernier refresh : 
 // Chargement live initial (crypto + or) au démarrage, sans bloquer l'affichage
 async function fetchRwaPrices(symbols){
   // Récupère les prix tokenisés (actions/ETF) via CoinGecko, en USD, convertit en EUR
+  if(!liveNetworkAllowed())return {};
   const ids=[],map={};
   (symbols||Object.keys(RWA)).forEach(s=>{const id=RWA[s];if(id){ids.push(id);map[id]=s;}});
   if(!ids.length)return {};
@@ -2267,7 +2371,7 @@ async function fetchRwaPrices(symbols){
     // CoinGecko limite l'URL : on découpe par lots de 30
     for(let i=0;i<ids.length;i+=30){
       const batch=ids.slice(i,i+30);
-      const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${batch.join(',')}&vs_currencies=usd&include_24hr_change=true`).then(r=>r.json());
+      const j=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${batch.join(',')}&vs_currencies=usd&include_24hr_change=true`,{signal:AbortSignal.timeout(8000)}).then(r=>r.json());
       const now=new Date().toISOString();
       batch.forEach(id=>{
         if(j?.[id]?.usd){
@@ -2275,7 +2379,7 @@ async function fetchRwaPrices(symbols){
           const usd=j[id].usd;
           const eur=usd*(S.fx.USD||0.92); // USD→EUR
           // On stocke TOUJOURS en EUR pour l'affichage uniforme
-          S.prices[sym.toLowerCase()]={price:eur,cur:'EUR',src:'live',at:now};
+          setPrice(sym,{price:eur,cur:'EUR',src:'live',at:now});
           out[sym]={price:eur,cur:'EUR',change:j[id].usd_24h_change};
         }
       });
@@ -2286,36 +2390,43 @@ async function fetchRwaPrices(symbols){
   return out;
 }
 async function fetchFx(){
+  if(!liveNetworkAllowed())return false;
   const now=new Date().toISOString();
-  // CoinGecko : on demande BTC en EUR + USD + CHF simultanement
+  const apply=(usd,chf,src)=>{S.fx.USD=usd;S.fx.CHF=chf;S.fxUpdated=now;S.fxSource=src;save();renderSpotBar();if(!uiBusy())renderCurrent();return true;};
+  // 1. Source primaire : frankfurter.app — taux BCE officiels (maj 1×/jour ouvré ~16h CET)
+  try{
+    const r=await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CHF',{signal:AbortSignal.timeout(8000)});
+    const j=await r.json();
+    const usd=num(j?.rates?.USD),chf=num(j?.rates?.CHF);
+    if(usd>0&&chf>0)return apply(1/usd,1/chf,'frankfurter (BCE)');
+  }catch(e){}
+  // 2. Fallback : cross-rates BTC via CoinGecko (intraday mais bruité)
   // EUR/USD = btc_eur / btc_usd, EUR/CHF = btc_eur / btc_chf
   try{
     const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur,usd,chf',{signal:AbortSignal.timeout(8000)});
     const j=await r.json();
     const eur=j?.bitcoin?.eur,usd=j?.bitcoin?.usd,chf=j?.bitcoin?.chf;
-    if(eur&&usd&&chf){
-      S.fx.USD=eur/usd;   // 1 USD = x EUR
-      S.fx.CHF=eur/chf;   // 1 CHF = x EUR
-      S.fxUpdated=now;
-      save();renderSpotBar();if(!uiBusy())renderCurrent();
-      return true;
-    }
+    if(eur&&usd&&chf)return apply(eur/usd,eur/chf,'CoinGecko (cross BTC)');
   }catch(e){}
   return false;
 }
 (async function initLivePrices(){
+  if(!liveNetworkAllowed())return;
   try{
-    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,pax-gold&vs_currencies=eur');
+    const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,pax-gold&vs_currencies=eur',{signal:AbortSignal.timeout(8000)});
     const j=await r.json();
     const now=new Date().toISOString();
-    if(j?.bitcoin?.eur)S.prices.btc={price:j.bitcoin.eur,cur:'EUR',src:'live',at:now};
-    if(j?.ethereum?.eur)S.prices.eth={price:j.ethereum.eur,cur:'EUR',src:'live',at:now};
-    if(j?.solana?.eur)S.prices.sol={price:j.solana.eur,cur:'EUR',src:'live',at:now};
-    if(j?.['pax-gold']?.eur){S.prices.xau={price:j['pax-gold'].eur,cur:'EUR',src:'live',at:now};S.goldSpot=j['pax-gold'].eur;S.goldUpdated=now;}
+    if(j?.bitcoin?.eur)setPrice('BTC',{price:j.bitcoin.eur,cur:'EUR',src:'live',at:now});
+    if(j?.ethereum?.eur)setPrice('ETH',{price:j.ethereum.eur,cur:'EUR',src:'live',at:now});
+    if(j?.solana?.eur)setPrice('SOL',{price:j.solana.eur,cur:'EUR',src:'live',at:now});
+    if(j?.['pax-gold']?.eur){setPrice('XAU',{price:j['pax-gold'].eur,cur:'EUR',src:'live',at:now});S.goldSpot=j['pax-gold'].eur;S.goldUpdated=now;}
     save();renderSpotBar();
   }catch(e){}
   // Taux de change avec fallbacks
   await fetchFx();
+  // Le snapshot du boot a été créé avant l'arrivée des prix live : on le met à jour
+  createSnapshot(false);
+  if(!uiBusy())renderCurrent();
 })();
 if(!liveNetworkAllowed())byId('refresh-meta').textContent='Mode fichier local · live web coupe';
 </script>
